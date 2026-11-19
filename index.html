@@ -701,9 +701,10 @@ function sanitizeRichHTML(value){
   return Array.from(parsed.body.childNodes).map(clean).join('');
 }
 
-function ask(title,fields){
+function ask(title,fields,options={}){
   return new Promise(resolve=>{
     const d=$('#dlg');
+    const workDraft=!!options.workDraft;
     const controls=fields.map(f=>{
       let input='';
       if(f.t==='rich'){
@@ -734,7 +735,10 @@ function ask(title,fields){
       else input='<input name="'+f.k+'" type="'+(f.t==='password'?'password':f.t==='url'?'url':'text')+'" '+(f.req?'required':'')+' value="'+esc(f.v||'')+'">';
       return f.t==='rich'?'<div class="rich-field"><div class="rich-field-label">'+f.l+'</div>'+input+'</div>':'<label>'+f.l+input+'</label>';
     }).join('');
-    d.innerHTML='<form><h2>'+title+'</h2>'+controls+'<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>';
+    const statusMarkup=workDraft?'<span class="work-draft-status" data-draft-status role="status">'+(options.draftId?'Draft dimuat dari browser ini.':'Autosave aktif · hanya di browser ini')+'</span>':'';
+    const workButtons=workDraft?'<button type="button" class="btn" data-work-draft-save>Simpan Draft</button><button type="button" class="btn" data-work-preview>Pratinjau</button>':'';
+    const previewMarkup=workDraft?'<section class="publish-preview" data-work-preview-pane hidden aria-label="Pratinjau karya"><div class="publish-preview-toolbar"><span>ATHENAEUM · PREVIEW BEFORE PUBLISHING</span><button type="button" data-work-preview-close>← Kembali ke Editor</button></div><div class="publish-preview-body" data-work-preview-content></div></section>':'';
+    d.innerHTML='<form><h2>'+title+'</h2>'+controls+statusMarkup+'<div class="btns '+(workDraft?'work-draft-actions':'')+'"><button type="button" class="btn" id="x">Batal</button>'+workButtons+'<button class="btn pri">'+(workDraft?(options.editWorkId?'Simpan Perubahan':'Publikasikan'):'Simpan')+'</button></div></form>'+previewMarkup;
     d.showModal();
     let savedRichRange=null;
     const richEditor=d.querySelector('[data-rich-editor]');
@@ -809,6 +813,7 @@ function ask(title,fields){
         syncRich(richEditor);
         updateWritingCount();
         captureRichSelection();
+        if(workDraft)scheduleDraftSave();
       });
     });
     const musicToggle=d.querySelector('[data-music-toggle]');
@@ -823,6 +828,7 @@ function ask(title,fields){
       const remove=d.querySelector('[data-music-remove]');
       if(remove)remove.addEventListener('click',()=>{
         musicFields.querySelectorAll('input').forEach(input=>input.value='');
+        if(workDraft)scheduleDraftSave();
         musicFields.setAttribute('hidden','');
         musicToggle.setAttribute('aria-expanded','false');
       });
@@ -836,26 +842,131 @@ function ask(title,fields){
         if(enabled)richEditor&&richEditor.focus({preventScroll:true});
       });
     }
-    let settled=false;
-    const finish=value=>{if(settled)return;settled=true;if(richEditor)document.removeEventListener('selectionchange',captureRichSelection);d.close();resolve(value);};
-    $('#x').onclick=()=>finish(null);
-    d.oncancel=e=>{e.preventDefault();finish(null);};
-    d.querySelector('form').onsubmit=e=>{
-      e.preventDefault();
+    let settled=false,dirty=false,autoSaveTimer=null,previewImageUrl=null;
+    const form=d.querySelector('form');
+    const status=d.querySelector('[data-draft-status]');
+    const previewPane=d.querySelector('[data-work-preview-pane]');
+    const setDraftStatus=(message,error=false)=>{
+      if(status){status.textContent=message;status.classList.toggle('is-error',error);}
+    };
+    const formValues=()=>{
       d.querySelectorAll('[data-rich-editor]').forEach(syncRich);
-      const out={};new FormData(e.target).forEach((v,k)=>out[k]=v);
-      // Keep the editor and all typed work open when a music link is invalid.
+      const out={};new FormData(form).forEach((v,k)=>out[k]=v);
+      return out;
+    };
+    const saveDraftFromForm=(force=false)=>{
+      if(!workDraft||(!dirty&&!force))return false;
+      const v=formValues();
+      const content=richEditor?(richEditor.innerText||'').trim():'';
+      const meaningful=String(v.title||'').trim()||String(v.author||'').trim()||content||String(v.music_url||'').trim()||(v.file&&v.file.size);
+      if(!meaningful)return false;
+      const id=options.draftId||makeWorkDraftId();
+      const row={id,bookId:options.bookId,editWorkId:options.editWorkId||null,updatedAt:Date.now(),
+        fields:{title:String(v.title||''),author:String(v.author||''),kind:String(v.kind||'Tulisan'),
+          text:sanitizeRichHTML(v.text||''),music_url:String(v.music_url||'')}};
+      storeLocalWorkDraft(row);
+      options.draftId=id;
+      setDraftStatus('Disimpan otomatis di browser ini · '+new Date(row.updatedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}));
+      dirty=false;
+      return true;
+    };
+    const scheduleDraftSave=()=>{
+      if(!workDraft||settled)return;
+      dirty=true;setDraftStatus('Menyimpan draft...');
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer=setTimeout(()=>{
+        try{saveDraftFromForm();}
+        catch(error){setDraftStatus('Gagal menyimpan: '+error.message,true);}
+      },750);
+    };
+    if(workDraft){
+      form.addEventListener('input',scheduleDraftSave);
+      form.addEventListener('change',scheduleDraftSave);
+    }
+    const dismissPreview=()=>{
+      if(!previewPane||previewPane.hidden)return;
+      previewPane.hidden=true;
+      d.querySelector('[data-work-preview-content]')?.replaceChildren();
+      if(previewImageUrl){URL.revokeObjectURL(previewImageUrl);previewImageUrl=null;}
+      d.querySelector('[data-work-preview]')?.focus({preventScroll:true});
+    };
+    const showPreview=()=>{
+      const v=formValues();
+      if(previewImageUrl){URL.revokeObjectURL(previewImageUrl);previewImageUrl=null;}
+      const title=String(v.title||'').trim()||'Tanpa judul';
+      const author=String(v.author||'').trim()||'Nama penulis/pelukis';
+      const sound=musicEmbedInfo(v.music_url)?workSoundtrack({music_url:v.music_url}):'';
+      let imageHtml='';
+      if(v.kind==='Gambar'){
+        const image=v.file&&v.file.size?v.file:null;
+        const src=image?(previewImageUrl=URL.createObjectURL(image)):options.existingImage;
+        if(src)imageHtml='<img src="'+esc(src)+'" alt="'+esc(title)+'">';
+        else imageHtml='<p class="empty">Pilih file gambar agar terlihat dalam pratinjau.</p>';
+      }
+      const textHtml=v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'';
+      d.querySelector('[data-work-preview-content]').innerHTML='<h2>'+esc(title)+'</h2><p class="preview-author">oleh '+esc(author)+'</p>'+sound+'<div class="read">'+imageHtml+textHtml+'</div>';
+      previewPane.hidden=false;previewPane.scrollTop=0;
+      d.querySelector('[data-work-preview-close]')?.focus({preventScroll:true});
+    };
+    const onPageHide=()=>{
+      if(!workDraft||settled)return;
+      clearTimeout(autoSaveTimer);
+      try{saveDraftFromForm();}catch(error){console.error('Autosave gagal:',error);}
+    };
+    const onVisibilityChange=()=>{if(document.visibilityState==='hidden')onPageHide();};
+    if(workDraft){
+      d.querySelector('[data-work-preview]').addEventListener('click',showPreview);
+      d.querySelector('[data-work-preview-close]').addEventListener('click',dismissPreview);
+      d.querySelector('[data-work-draft-save]').addEventListener('click',()=>{
+        clearTimeout(autoSaveTimer);
+        try{
+          if(!saveDraftFromForm(true)){setDraftStatus('Isi judul atau tulisan sebelum menyimpan draft.',true);return;}
+          const v=formValues();
+          if(v.kind==='Gambar'&&v.file&&v.file.size)alert('Draft tersimpan. File gambar tidak ikut disimpan; pilih ulang sebelum publikasi.');
+          finish(null);
+        }catch(error){setDraftStatus('Gagal menyimpan draft: '+error.message,true);}
+      });
+      window.addEventListener('pagehide',onPageHide);
+      document.addEventListener('visibilitychange',onVisibilityChange);
+    }
+    const finish=value=>{
+      if(settled)return;
+      settled=true;clearTimeout(autoSaveTimer);
+      if(workDraft){window.removeEventListener('pagehide',onPageHide);document.removeEventListener('visibilitychange',onVisibilityChange);}
+      if(richEditor)document.removeEventListener('selectionchange',captureRichSelection);
+      if(previewImageUrl)URL.revokeObjectURL(previewImageUrl);
+      d.close();resolve(value);
+    };
+    const cancelEditor=()=>{
+      clearTimeout(autoSaveTimer);
+      if(workDraft&&dirty){
+        try{saveDraftFromForm();}
+        catch(error){if(!confirm('Draft gagal disimpan. Tetap keluar? Tulisan yang belum disimpan bisa hilang.'))return;}
+      }
+      finish(null);
+    };
+    $('#x').onclick=cancelEditor;
+    d.oncancel=e=>{
+      e.preventDefault();
+      if(previewPane&&!previewPane.hidden){dismissPreview();return;}
+      cancelEditor();
+    };
+    form.onsubmit=e=>{
+      e.preventDefault();
+      const out=formValues();
       if(d.querySelector('[data-music-fields]')){
         try{normalizedWorkMusic(out);}catch(error){
           alert(error.message);
-          const field=d.querySelector('[name="music_url"]');
           const pane=d.querySelector('[data-music-fields]');
           if(pane)pane.removeAttribute('hidden');
-          const toggle=d.querySelector('[data-music-toggle]');
-          if(toggle)toggle.setAttribute('aria-expanded','true');
-          if(field)field.focus({preventScroll:true});
+          d.querySelector('[data-music-toggle]')?.setAttribute('aria-expanded','true');
+          d.querySelector('[name="music_url"]')?.focus({preventScroll:true});
           return;
         }
+      }
+      if(workDraft&&dirty){
+        try{saveDraftFromForm();}
+        catch(error){setDraftStatus('Peringatan: draft tidak tersimpan. '+error.message,true);}
       }
       finish(out);
     };
