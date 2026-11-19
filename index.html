@@ -86,7 +86,10 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 .reader-overlay.is-open{display:flex;position:fixed;inset:0;z-index:10000;flex-direction:column;overflow-y:auto;padding:clamp(16px,4vw,48px);background:var(--paper);color:var(--ink)}
 .reader-overlay[data-theme="sepia"]{background:#eee6d5;color:#463e31}
 .reader-overlay[data-theme="night"]{background:#24231f;color:#e9e1d2}
-.reader-toolbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:14px;width:min(100%,900px);margin:0 auto 28px;padding:10px 0 14px;border-bottom:1px solid currentColor;background:inherit}
+.reader-toolbar{position:sticky;top:0;z-index:20;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:14px;flex:0 0 auto;width:min(100%,900px);margin:0 auto 28px;padding:12px 12px 14px;border-bottom:1px solid currentColor;background-color:#fbf8ee;box-shadow:0 12px 22px rgba(35,32,25,.09);opacity:1}
+.reader-overlay[data-theme="paper"] .reader-toolbar{background-color:#fbf8ee;color:#3a3935}
+.reader-overlay[data-theme="sepia"] .reader-toolbar{background-color:#eee6d5;color:#463e31}
+.reader-overlay[data-theme="night"] .reader-toolbar{background-color:#24231f;color:#e9e1d2}
 .reader-kicker{font:10px 'Instrument Serif',serif;letter-spacing:.16em;opacity:.7}
 .reader-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
 .reader-control{border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;padding:6px 10px;font:12px 'Instrument Serif',serif;cursor:pointer}
