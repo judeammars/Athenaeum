@@ -193,6 +193,31 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 @media(max-width:640px){.work-slide{min-height:190px}.work-slide-copy{padding:19px 18px;max-width:96%}.showcase-controls{margin-top:8px}.carousel-admin-row{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.showcase-slide,.work-slide-image{transition:none}}
 
+
+/* Optional linked soundtrack */
+.music-toggle{white-space:nowrap}
+.music-toggle[aria-expanded="true"]{background:#ded5be;border-color:#a39781}
+.music-fields{display:grid;gap:9px;padding:13px 12px 15px;background:#f8f5ed;border-bottom:1px solid var(--line)}
+.music-fields[hidden]{display:none!important}
+.music-fields label{margin:0;font-size:12px}
+.music-fields input{margin-top:4px;font-size:14px;padding:9px 10px;background:#fff}
+.music-fields-heading{font:italic 18px 'Cormorant Garamond',serif}
+.music-fields-help{font-size:11px;color:var(--gray);line-height:1.5}
+.music-fields-remove{justify-self:start;border:0;background:transparent;color:#846f62;font:12px 'Instrument Serif',serif;text-decoration:underline;cursor:pointer;padding:3px 0}
+.soundtrack-card{max-width:700px;margin:0 auto 26px;padding:15px 18px;background:#f4f0e6;border:1px solid var(--line);border-radius:5px;color:var(--ink)}
+.soundtrack-heading{font:10px 'Instrument Serif',serif;letter-spacing:.15em;color:#8b8374}
+.soundtrack-title{margin:6px 0 3px;font:italic 23px/1.18 'Cormorant Garamond',serif}
+.soundtrack-artist{margin:0 0 12px;font:13px 'Instrument Serif',serif;opacity:.74}
+.soundtrack-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.soundtrack-play{border:1px solid currentColor;background:transparent;color:inherit;border-radius:3px;cursor:pointer;padding:6px 12px;font:12px 'Instrument Serif',serif}
+.soundtrack-play:hover{background:rgba(128,118,98,.13)}
+.soundtrack-link{font:12px 'Instrument Serif',serif;color:inherit;text-decoration:underline;text-underline-offset:3px}
+.soundtrack-player{margin-top:10px}
+.soundtrack-player:empty{display:none}
+.soundtrack-player iframe{display:block;width:100%;max-width:100%;border:0;border-radius:6px}
+.reader-content .soundtrack-card{max-width:100%;background:rgba(120,110,95,.09);border-color:currentColor;color:inherit}
+.reader-overlay[data-theme="night"] .soundtrack-heading{color:#c4b6a0}
+@media(max-width:640px){.music-fields{padding:11px}.soundtrack-card{padding:13px}}
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -225,7 +250,64 @@ function publicUrl(path){
 }
 function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.created_by};}
 function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'Athenaeum',cover_artist:x.cover_artist||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
-function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,created_by:x.created_by};}
+function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,music_url:x.music_url||'',music_title:x.music_title||'',music_artist:x.music_artist||'',created_by:x.created_by};}
+
+function musicEmbedInfo(value){
+  const raw=String(value||'').trim();
+  if(!raw)return null;
+  let url;
+  try{url=new URL(raw);}catch(error){return null;}
+  if(url.protocol!=='https:'||url.username||url.password)return null;
+  const host=url.hostname.toLowerCase();
+  if(host==='open.spotify.com'){
+    const parts=url.pathname.split('/').filter(Boolean);
+    const idx=parts.indexOf('track');
+    const id=idx>=0?parts[idx+1]:'';
+    if(!/^[A-Za-z0-9]{22}$/.test(id)||idx!==parts.length-2)return null;
+    return {platform:'Spotify',link:'https://open.spotify.com/track/'+id,embed:'https://open.spotify.com/embed/track/'+id};
+  }
+  if(['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','youtu.be'].includes(host)){
+    let id='';
+    if(host==='youtu.be'){
+      const parts=url.pathname.split('/').filter(Boolean);id=parts.length===1?parts[0]:'';
+    }else if(url.pathname==='/watch')id=url.searchParams.get('v')||'';
+    else{
+      const parts=url.pathname.split('/').filter(Boolean);
+      if(parts.length===2&&['embed','shorts','live'].includes(parts[0]))id=parts[1];
+    }
+    if(!/^[A-Za-z0-9_-]{11}$/.test(id))return null;
+    return {platform:'YouTube',link:'https://www.youtube.com/watch?v='+id,embed:'https://www.youtube-nocookie.com/embed/'+id};
+  }
+  return null;
+}
+function normalizedWorkMusic(v){
+  const url=String(v.music_url||'').trim(),title=String(v.music_title||'').trim(),artist=String(v.music_artist||'').trim();
+  if(!url&&!title&&!artist)return {music_url:null,music_title:null,music_artist:null};
+  const info=musicEmbedInfo(url);
+  if(!info)throw new Error('Gunakan link lagu Spotify atau YouTube yang valid.');
+  if(!title||!artist)throw new Error('Isi judul lagu dan nama penyanyinya.');
+  if(title.length>160||artist.length>160)throw new Error('Judul lagu dan nama penyanyi maksimal 160 karakter.');
+  return {music_url:info.link,music_title:title,music_artist:artist};
+}
+function workSoundtrack(w){
+  const info=musicEmbedInfo(w.music_url);
+  if(!info)return '';
+  return '<section class="soundtrack-card" data-music-card data-music-link="'+esc(info.link)+'" aria-label="Lagu pendamping karya">'+
+    '<div class="soundtrack-heading">♫ THE SOUNDTRACK OF THIS WORK</div>'+
+    '<div class="soundtrack-title">'+esc(w.music_title||'Lagu pendamping')+'</div>'+
+    (w.music_artist?'<p class="soundtrack-artist">'+esc(w.music_artist)+'</p>':'')+
+    '<div class="soundtrack-actions"><button type="button" class="soundtrack-play" data-music-play aria-expanded="false">▶ Tampilkan pemutar</button>'+
+    '<a class="soundtrack-link" href="'+esc(info.link)+'" target="_blank" rel="noopener noreferrer">Buka di '+info.platform+' ↗</a></div>'+
+    '<div class="soundtrack-player" data-music-player></div></section>';
+}
+function stopWorkMusic(){
+  document.querySelectorAll('[data-music-card]').forEach(card=>{
+    const mount=card.querySelector('[data-music-player]');if(mount)mount.replaceChildren();
+    const button=card.querySelector('[data-music-play]');
+    if(button){button.textContent='▶ Tampilkan pemutar';button.setAttribute('aria-expanded','false');}
+  });
+}
+
 function mapCarousel(x){return {id:x.id,title:x.title,author_name:x.author_name||'',caption:x.caption||'',image_path:x.image_path,img:publicUrl(x.image_path),target_url:x.target_url,created_by:x.created_by,created_at:x.created_at};}
 
 async function refreshData(){
@@ -293,9 +375,10 @@ function render(){
     let actions='';
     if(canManage(w))actions='<a data-act="editw">edit karya</a> · <a data-act="delw">hapus karya</a>';
     const workContent=(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'');
-    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+workContent+'</article></section>':'';
+    const soundtrack=workSoundtrack(w);
+    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+soundtrack+workContent+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
-      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
+      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
   }else{
     const coverCount=db.books.length,workCount=db.works.length;
     const welcome='<div class="showcase-slide welcome-slide is-active"><section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section></div>';
@@ -418,8 +501,15 @@ function ask(title,fields){
           '<button type="button" class="rich-tool" data-rich-command="insertUnorderedList" title="Daftar poin">• List</button>'+
           '<button type="button" class="rich-tool" data-rich-command="insertOrderedList" title="Daftar bernomor">1. List</button>'+
           '<button type="button" class="rich-tool" data-rich-command="removeFormat" title="Hapus format">Clear</button>'+
+          '<button type="button" class="rich-tool music-toggle" data-music-toggle aria-expanded="'+(f.music_url?'true':'false')+'">♫ Add Music</button>'+
           '<button type="button" class="rich-tool writer-toggle" data-writing-toggle>Writing Mode ↗</button>'+
-          '</div><div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" data-rich-editor="'+f.k+'" data-placeholder="Mulai tulis karya di sini...">'+value+'</div><input class="rich-value" type="hidden" name="'+f.k+'" value="'+esc(value)+'"><div class="writer-footer"><span data-writing-count class="writer-count">0 kata · 0 karakter</span><span>FOCUS WRITING</span></div></div><small class="rich-help">Pilih teks, lalu gunakan toolbar untuk mengatur format dan perataan.</small>';
+          '</div><div class="music-fields" data-music-fields '+(f.music_url?'':'hidden')+'>'+
+          '<div class="music-fields-heading">The Soundtrack of This Work</div>'+
+          '<div class="music-fields-help">Link Spotify atau YouTube resmi. Lagu tidak menyala otomatis.</div>'+
+          '<label>Link lagu<input type="url" name="music_url" placeholder="https://open.spotify.com/track/..." value="'+esc(f.music_url||'')+'"></label>'+
+          '<label>Judul lagu<input name="music_title" maxlength="160" placeholder="Judul lagu" value="'+esc(f.music_title||'')+'"></label>'+
+          '<label>Nama penyanyi<input name="music_artist" maxlength="160" placeholder="Nama penyanyi" value="'+esc(f.music_artist||'')+'"></label>'+
+          '<button type="button" class="music-fields-remove" data-music-remove>Hapus lagu dari karya</button></div><div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" data-rich-editor="'+f.k+'" data-placeholder="Mulai tulis karya di sini...">'+value+'</div><input class="rich-value" type="hidden" name="'+f.k+'" value="'+esc(value)+'"><div class="writer-footer"><span data-writing-count class="writer-count">0 kata · 0 karakter</span><span>FOCUS WRITING</span></div></div><small class="rich-help">Pilih teks, lalu gunakan toolbar untuk mengatur format dan perataan.</small>';
       }else if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
       else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
       else if(f.t==='sel')input='<select name="'+f.k+'">'+f.o.map(o=>'<option '+(o===(f.v||f.o[0])?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
@@ -503,6 +593,22 @@ function ask(title,fields){
         captureRichSelection();
       });
     });
+    const musicToggle=d.querySelector('[data-music-toggle]');
+    const musicFields=d.querySelector('[data-music-fields]');
+    if(musicToggle&&musicFields){
+      musicToggle.addEventListener('click',()=>{
+        const opening=musicFields.hasAttribute('hidden');
+        if(opening)musicFields.removeAttribute('hidden');else musicFields.setAttribute('hidden','');
+        musicToggle.setAttribute('aria-expanded',String(opening));
+        if(opening){const linkInput=musicFields.querySelector('[name="music_url"]');if(linkInput)linkInput.focus({preventScroll:true});}
+      });
+      const remove=d.querySelector('[data-music-remove]');
+      if(remove)remove.addEventListener('click',()=>{
+        musicFields.querySelectorAll('input').forEach(input=>input.value='');
+        musicFields.setAttribute('hidden','');
+        musicToggle.setAttribute('aria-expanded','false');
+      });
+    }
     const writingToggle=d.querySelector('[data-writing-toggle]');
     if(writingToggle){
       writingToggle.addEventListener('click',()=>{
@@ -692,8 +798,9 @@ async function performAction(act,id,t){
     const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:true},{k:'author',l:'Nama penulis / pelukis',req:true},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'rich'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
     if(!v)return;
     if(v.kind==='Gambar'&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
+    const music=normalizedWorkMusic(v);
     const path=v.kind==='Gambar'?await uploadImage(v.file,'works',1600):null;
-    const r=await supabase.from('works').insert({book_id:id,title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path,created_by:user().id});
+    const r=await supabase.from('works').insert({book_id:id,title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path,...music,created_by:user().id});
     if(r.error){if(path)await supabase.storage.from(BUCKET).remove([path]);throw r.error;}
     await refreshData();render();return;
   }
@@ -708,11 +815,12 @@ async function performAction(act,id,t){
   }
   if(act==='editw'){
     const w=db.works.find(x=>x.id===id);if(!canManage(w))throw new Error('Anda tidak memiliki izin mengubah karya ini.');
-    const v=await ask('Edit karya',[{k:'title',l:'Judul karya',req:true,v:w.title},{k:'author',l:'Nama penulis / pelukis',req:true,v:w.author},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:w.kind},{k:'text',l:'Isi tulisan',t:'rich',v:w.text},{k:'file',l:'Ganti gambar (opsional)',t:'file'}]);
+    const v=await ask('Edit karya',[{k:'title',l:'Judul karya',req:true,v:w.title},{k:'author',l:'Nama penulis / pelukis',req:true,v:w.author},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:w.kind},{k:'text',l:'Isi tulisan',t:'rich',v:w.text,music_url:w.music_url,music_title:w.music_title,music_artist:w.music_artist},{k:'file',l:'Ganti gambar (opsional)',t:'file'}]);
     if(!v)return;
     if(v.kind==='Gambar'&&!w.image_path&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
+    const music=normalizedWorkMusic(v);
     const path=v.kind==='Tulisan'?null:(v.file&&v.file.size?await uploadImage(v.file,'works',1600):w.image_path);
-    const r=await supabase.from('works').update({title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path}).eq('id',id);
+    const r=await supabase.from('works').update({title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path,...music}).eq('id',id);
     if(r.error)throw r.error;
     await refreshData();render();return;
   }
@@ -742,17 +850,40 @@ async function performAction(act,id,t){
 }
 
 document.addEventListener('click',async e=>{
+  const play=e.target.closest('[data-music-play]');
+  if(play){
+    const card=play.closest('[data-music-card]');
+    const mount=card&&card.querySelector('[data-music-player]');
+    const info=card&&musicEmbedInfo(card.dataset.musicLink);
+    if(!mount||!info)return;
+    if(mount.childNodes.length){stopWorkMusic();return;}
+    stopWorkMusic();
+    const iframe=document.createElement('iframe');
+    iframe.src=info.embed;
+    iframe.title='Pemutar '+info.platform+' untuk lagu pendamping karya';
+    iframe.loading='lazy';
+    iframe.referrerPolicy='strict-origin-when-cross-origin';
+    iframe.allow='encrypted-media; fullscreen; picture-in-picture';
+    iframe.allowFullscreen=true;
+    iframe.height=info.platform==='Spotify'?'152':'230';
+    mount.appendChild(iframe);
+    play.textContent='✕ Tutup pemutar';
+    play.setAttribute('aria-expanded','true');
+    return;
+  }
   const readAction=e.target.closest('[data-reading-action]');
   if(readAction){
     const overlay=readAction.closest('[data-reader-overlay]')||document.querySelector('[data-reader-overlay]');
     if(!overlay)return;
     const action=readAction.dataset.readingAction;
     if(action==='open'){
+      stopWorkMusic();
       overlay.classList.add('is-open');
       document.body.classList.add('reading-mode-active');
       const closeButton=overlay.querySelector('[data-reading-action="close"]');
       if(closeButton)closeButton.focus({preventScroll:true});
     }else if(action==='close'){
+      stopWorkMusic();
       overlay.classList.remove('is-open');
       document.body.classList.remove('reading-mode-active');
     }else if(action==='smaller'||action==='larger'){
@@ -782,6 +913,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     const overlay=document.querySelector('[data-reader-overlay].is-open');
     if(overlay){
+      stopWorkMusic();
       overlay.classList.remove('is-open');
       document.body.classList.remove('reading-mode-active');
     }
