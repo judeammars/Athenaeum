@@ -62,7 +62,10 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 .read blockquote{margin:1em 0;padding-left:1em;border-left:2px solid var(--line);color:var(--gray)}
 .read h2,.read h3{font-family:'Cormorant Garamond',serif;line-height:1.2;margin:1em 0 .4em}
 .read img{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+.rich-field{display:block;margin-bottom:12px}
+.rich-field-label{display:block;font-size:14px;color:var(--gray);margin-bottom:4px}
 .rich-editor{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin-top:6px}
+.rich-area{user-select:text;-webkit-user-select:text;cursor:text;touch-action:manipulation}
 .rich-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:8px;border-bottom:1px solid var(--line);background:var(--ivory2)}
 .rich-tool{min-width:34px;height:32px;padding:0 8px;border:1px solid rgba(110,102,85,.22);border-radius:6px;background:#fff;color:var(--ink);font:13px 'Instrument Serif',serif;cursor:pointer}
 .rich-tool:hover{background:#e9e2d2}
@@ -263,35 +266,77 @@ function ask(title,fields){
       else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
       else if(f.t==='sel')input='<select name="'+f.k+'">'+f.o.map(o=>'<option '+(o===(f.v||f.o[0])?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
       else input='<input name="'+f.k+'" type="'+(f.t==='password'?'password':'text')+'" '+(f.req?'required':'')+' value="'+esc(f.v||'')+'">';
-      return '<label>'+f.l+input+'</label>';
+      return f.t==='rich'?'<div class="rich-field"><div class="rich-field-label">'+f.l+'</div>'+input+'</div>':'<label>'+f.l+input+'</label>';
     }).join('');
     d.innerHTML='<form><h2>'+title+'</h2>'+controls+'<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>';
     d.showModal();
+    let savedRichRange=null;
+    const richEditor=d.querySelector('[data-rich-editor]');
+    const captureRichSelection=()=>{
+      if(!richEditor)return;
+      const selection=window.getSelection();
+      if(!selection||!selection.rangeCount)return;
+      const range=selection.getRangeAt(0);
+      if(richEditor.contains(range.commonAncestorContainer))savedRichRange=range.cloneRange();
+    };
+    const restoreRichSelection=()=>{
+      if(!richEditor)return false;
+      richEditor.focus({preventScroll:true});
+      if(!savedRichRange||!richEditor.contains(savedRichRange.commonAncestorContainer))return false;
+      const selection=window.getSelection();
+      if(!selection)return false;
+      selection.removeAllRanges();
+      selection.addRange(savedRichRange);
+      return true;
+    };
     const syncRich=editor=>{
       const hidden=d.querySelector('input[name="'+editor.dataset.richEditor+'"]');
       if(hidden)hidden.value=sanitizeRichHTML(editor.innerHTML);
     };
-    d.querySelectorAll('[data-rich-editor]').forEach(editor=>{
-      editor.addEventListener('input',()=>syncRich(editor));
-      editor.addEventListener('paste',event=>{
+    if(richEditor){
+      richEditor.addEventListener('input',()=>syncRich(richEditor));
+      richEditor.addEventListener('mouseup',captureRichSelection);
+      richEditor.addEventListener('keyup',captureRichSelection);
+      richEditor.addEventListener('touchend',captureRichSelection);
+      richEditor.addEventListener('paste',event=>{
         event.preventDefault();
         const plain=event.clipboardData?event.clipboardData.getData('text/plain'):'';
+        richEditor.focus();
         document.execCommand('insertText',false,plain);
-        syncRich(editor);
+        syncRich(richEditor);
+        captureRichSelection();
       });
-    });
+      richEditor.addEventListener('keydown',event=>{
+        if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='a'){
+          event.preventDefault();
+          const range=document.createRange();
+          range.selectNodeContents(richEditor);
+          const selection=window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          savedRichRange=range.cloneRange();
+        }
+      });
+      document.addEventListener('selectionchange',captureRichSelection);
+    }
     d.querySelectorAll('[data-rich-command]').forEach(button=>{
-      button.addEventListener('mousedown',event=>event.preventDefault());
+      const preserveSelection=event=>{
+        captureRichSelection();
+        event.preventDefault();
+      };
+      button.addEventListener('pointerdown',preserveSelection);
+      button.addEventListener('mousedown',preserveSelection);
       button.addEventListener('click',()=>{
-        const editor=d.querySelector('[data-rich-editor]');
-        if(!editor)return;
-        editor.focus();
+        if(!richEditor)return;
+        const restored=restoreRichSelection();
+        if(!restored)richEditor.focus({preventScroll:true});
         document.execCommand(button.dataset.richCommand,false,null);
-        syncRich(editor);
+        syncRich(richEditor);
+        captureRichSelection();
       });
     });
     let settled=false;
-    const finish=value=>{if(settled)return;settled=true;d.close();resolve(value);};
+    const finish=value=>{if(settled)return;settled=true;if(richEditor)document.removeEventListener('selectionchange',captureRichSelection);d.close();resolve(value);};
     $('#x').onclick=()=>finish(null);
     d.oncancel=e=>{e.preventDefault();finish(null);};
     d.querySelector('form').onsubmit=e=>{
