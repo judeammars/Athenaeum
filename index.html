@@ -111,7 +111,42 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .home-grid .add .cover{aspect-ratio:1.35!important;margin-top:12px!important;border-radius:0 14px 8px 8px}
 .home-colophon{display:flex;justify-content:space-between;gap:12px;margin-top:28px;padding-top:12px;border-top:1px solid var(--line);font-size:10px;letter-spacing:.12em;color:#928a78}
 @media(max-width:640px){.home-intro{grid-template-columns:1fr;gap:16px;padding:19px}.intro-mark{display:flex;align-items:center;gap:12px;text-align:left;border-left:0;border-top:1px solid rgba(140,130,108,.35);padding:12px 0 0}.intro-mark strong{font-size:38px}.intro-mark span{margin:0}.home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.collection-heading h2{font-size:24px}.home-colophon{font-size:9px}}
-.cover-credit{margin:5px 0 18px;color:var(--gray);font-size:13px;font-style:italic}</style>
+.cover-credit{margin:5px 0 18px;color:var(--gray);font-size:13px;font-style:italic}
+/* Community showcase carousel */
+.home-showcase{margin:4px 0 30px}
+.showcase-track{display:grid;grid-template-columns:minmax(0,1fr)}
+.showcase-slide{grid-area:1/1;min-width:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .72s ease}
+.showcase-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;z-index:1}
+.showcase-slide.welcome-slide .home-intro{margin:0}
+.work-slide{position:relative;display:flex;align-items:flex-end;min-height:166px;overflow:hidden;border:1px solid rgba(150,139,115,.32);border-radius:3px;color:#fff;text-decoration:none;background:#777263;isolation:isolate}
+.work-slide-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform 1.1s ease}
+.work-slide:hover .work-slide-image{transform:scale(1.025)}
+.work-slide-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(25,25,22,.72) 0%,rgba(25,25,22,.42) 48%,rgba(25,25,22,.12) 100%),linear-gradient(0deg,rgba(20,20,18,.3),transparent 70%)}
+.work-slide-copy{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:24px 28px;max-width:min(760px,90%)}
+.work-slide-kicker,.work-slide-link{font:10px 'Instrument Serif',serif;letter-spacing:.16em;color:rgba(255,250,235,.78)}
+.work-slide-copy strong{font:italic clamp(25px,4vw,38px)/1.04 'Cormorant Garamond',serif;font-weight:600;color:#fffaf0}
+.work-slide-caption{font:italic clamp(14px,1.8vw,18px)/1.35 'Cormorant Garamond',serif;color:#fffaf0;white-space:pre-line}
+.work-slide-link{margin-top:7px;color:#fffaf0;text-decoration:underline;text-underline-offset:3px}
+.showcase-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:9px 2px 0;color:var(--gray)}
+.showcase-count{font:10px 'Instrument Serif',serif;letter-spacing:.15em;white-space:nowrap}
+.showcase-dots{display:flex;align-items:center;justify-content:center;gap:7px;flex:1}
+.showcase-dot{width:6px;height:6px;padding:0;border:0;border-radius:50%;background:#c9c1b1;cursor:pointer;transition:width .2s,background .2s}
+.showcase-dot.active{width:19px;border-radius:9px;background:#777263}
+.showcase-arrows{display:flex;gap:5px}
+.showcase-arrows button{width:27px;height:25px;padding:0;border:1px solid rgba(110,102,85,.28);background:transparent;color:var(--gray);font:20px/1 'Cormorant Garamond',serif;cursor:pointer}
+.showcase-arrows button:hover{background:var(--ivory2);color:var(--ink)}
+.carousel-admin{margin:20px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--gray)}
+.carousel-admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.carousel-admin-head>span{font:10px 'Instrument Serif',serif;letter-spacing:.15em}
+.carousel-admin-head button{border:0;background:transparent;padding:3px 0;color:var(--gray);font:13px 'Instrument Serif',serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.carousel-admin-head button:hover,.carousel-admin-row a:hover{color:var(--ink)}
+.carousel-admin-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(140,130,108,.16)}
+.carousel-admin-row>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.carousel-admin-row a{cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+@media(max-width:640px){.work-slide{min-height:190px}.work-slide-copy{padding:19px 18px;max-width:96%}.showcase-controls{margin-top:8px}.carousel-admin-row{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.showcase-slide,.work-slide-image{transition:none}}
+
+</style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://bsmapmixfpiwvoptpbxt.supabase.co" crossorigin>
@@ -131,7 +166,7 @@ const BUCKET='athenaeum-artworks';
 const MEMBER_EMAIL='contributors@athenaeum.invalid';
 const ADMIN_EMAIL='admin@athenaeum.invalid';
 let supabase=null;
-let session=null,profile=null,db={folders:[],books:[],works:[]},legacyDb=null,loadingError=null,dataReady=false;
+let session=null,profile=null,db={folders:[],books:[],works:[],carousel:[]},legacyDb=null,loadingError=null,dataReady=false,homeShowcaseTimer=null;
 const user=()=>session&&session.user?session.user:null;
 const isAdmin=()=>!!(profile&&profile.role==='admin'&&profile.status==='active');
 const isMember=()=>!!(profile&&profile.status==='active'&&(profile.role==='member'||profile.role==='admin'));
@@ -144,17 +179,19 @@ function publicUrl(path){
 function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.created_by};}
 function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'Athenaeum',cover_artist:x.cover_artist||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
 function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,created_by:x.created_by};}
+function mapCarousel(x){return {id:x.id,title:x.title,caption:x.caption||'',image_path:x.image_path,img:publicUrl(x.image_path),target_url:x.target_url,created_by:x.created_by,created_at:x.created_at};}
 
 async function refreshData(){
   loadingError=null;
   const results=await Promise.all([
     supabase.from('folders').select('*').order('created_at',{ascending:true}),
     supabase.from('books').select('*').order('created_at',{ascending:true}),
-    supabase.from('works').select('*').order('created_at',{ascending:true})
+    supabase.from('works').select('*').order('created_at',{ascending:true}),
+    supabase.from('carousel_slides').select('*').order('created_at',{ascending:false})
   ]);
   const failed=results.find(x=>x.error);
   if(failed){loadingError=failed.error.message;throw failed.error;}
-  db={folders:(results[0].data||[]).map(mapFolder),books:(results[1].data||[]).map(mapBook),works:(results[2].data||[]).map(mapWork)};
+  db={folders:(results[0].data||[]).map(mapFolder),books:(results[1].data||[]).map(mapBook),works:(results[2].data||[]).map(mapWork),carousel:(results[3].data||[]).map(mapCarousel)};
 }
 async function syncAuth(s){
   session=s||null;profile=null;
@@ -211,13 +248,81 @@ function render(){
       '<div class="read">'+(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'')+'</div>','b/'+w.bid);
   }else{
     const coverCount=db.books.length,workCount=db.works.length;
-    const intro='<section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section>';
+    const welcome='<div class="showcase-slide welcome-slide is-active"><section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section></div>';
+    const workSlides=(db.carousel||[]).map((slide,i)=>'<a class="showcase-slide work-slide" href="'+esc(slide.target_url)+'" target="_blank" rel="noopener noreferrer" aria-label="Buka karya '+esc(slide.title)+' di tautan aslinya"><img class="work-slide-image" src="'+esc(slide.img)+'" alt="'+esc(slide.title)+'"><span class="work-slide-shade"></span><span class="work-slide-copy"><span class="work-slide-kicker">FROM THE ATHENAEUM COMMUNITY</span><strong>'+esc(slide.title)+'</strong>'+(slide.caption?'<span class="work-slide-caption">'+esc(slide.caption)+'</span>':'')+'<span class="work-slide-link">VIEW ORIGINAL POST ↗</span></span></a>').join('');
+    const showcaseCount=(db.carousel||[]).length+1;
+    const showcaseControls=showcaseCount>1?'<div class="showcase-controls"><span class="showcase-count"><span data-showcase-current>01</span> / '+String(showcaseCount).padStart(2,'0')+'</span><div class="showcase-dots">'+Array.from({length:showcaseCount},(_,i)=>'<button type="button" class="showcase-dot '+(i===0?'active':'')+'" data-showcase-dot="'+i+'" aria-label="Slide '+(i+1)+'" '+(i===0?'aria-current="true"':'')+'></button>').join('')+'</div><div class="showcase-arrows"><button type="button" data-showcase-prev aria-label="Slide sebelumnya">‹</button><button type="button" data-showcase-next aria-label="Slide berikutnya">›</button></div></div>':'';
+    const showcase='<section class="home-showcase" data-home-showcase><div class="showcase-track">'+welcome+workSlides+'</div>'+showcaseControls+'</section>';
     const heading='<div class="collection-heading"><div><span class="section-kicker">THE ARCHIVE</span><h2>The Collections</h2></div><div class="collection-count">'+db.folders.length+' PROJECTS&nbsp; · &nbsp;'+coverCount+' COVERS&nbsp; · &nbsp;'+workCount+' WORKS</div></div>';
     const cards=!dataReady?'<div class="empty">Sedang memuat koleksi...</div>':db.folders.length?db.folders.map((f,i)=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"><span class="folder-index">COLLECTION '+String(i+1).padStart(2,'0')+'</span></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover dalam koleksi</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>';
     const add=isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:1.35;margin-top:12px">+</div><h3>Folder baru</h3><p>Tambahkan koleksi</p></div>':'';
     const colophon='<div class="home-colophon"><span>AN OPEN SHELF FOR CREATIVE WORK</span><span>WORDS · IMAGES · IDEAS</span></div>';
-    A.innerHTML=frame('Athenaeum','', '- explore the archive -',intro+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon);
+    const carouselAdmin=isAdmin()?'<section class="carousel-admin"><div class="carousel-admin-head"><span>SHOWCASE MANAGEMENT</span><button type="button" data-act="add-carousel">＋ Add Carousel</button></div>'+((db.carousel||[]).map(slide=>'<div class="carousel-admin-row"><span>'+esc(slide.title)+'</span><span><a data-act="edit-carousel" data-slide-id="'+esc(slide.id)+'">edit</a> · <a data-act="delete-carousel" data-slide-id="'+esc(slide.id)+'">hapus</a></span></div>').join(''))+'</section>':'';
+    A.innerHTML=frame('Athenaeum','', '- explore the archive -',showcase+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon+carouselAdmin);
+    mountHomeShowcase();
   }
+}
+
+function stopHomeShowcase(){
+  if(homeShowcaseTimer){clearTimeout(homeShowcaseTimer);homeShowcaseTimer=null;}
+}
+function mountHomeShowcase(){
+  stopHomeShowcase();
+  const root=document.querySelector('[data-home-showcase]');
+  if(!root)return;
+  const slides=Array.from(root.querySelectorAll('.showcase-slide'));
+  if(slides.length<2)return;
+  const dots=Array.from(root.querySelectorAll('[data-showcase-dot]'));
+  const current=root.querySelector('[data-showcase-current]');
+  let active=0,paused=false;
+  const setSlide=(next)=>{
+    active=(next+slides.length)%slides.length;
+    slides.forEach((slide,i)=>slide.classList.toggle('is-active',i===active));
+    dots.forEach((dot,i)=>{
+      dot.classList.toggle('active',i===active);
+      if(i===active)dot.setAttribute('aria-current','true');else dot.removeAttribute('aria-current');
+    });
+    if(current)current.textContent=String(active+1).padStart(2,'0');
+  };
+  const schedule=(delay)=>{
+    stopHomeShowcase();
+    if(paused)return;
+    homeShowcaseTimer=setTimeout(()=>{
+      setSlide(active+1);
+      schedule(6000);
+    },delay);
+  };
+  root.querySelectorAll('[data-showcase-prev]').forEach(button=>button.addEventListener('click',()=>{
+    setSlide(active-1);schedule(6000);
+  }));
+  root.querySelectorAll('[data-showcase-next]').forEach(button=>button.addEventListener('click',()=>{
+    setSlide(active+1);schedule(6000);
+  }));
+  dots.forEach((dot,i)=>dot.addEventListener('click',()=>{
+    setSlide(i);schedule(6000);
+  }));
+  root.addEventListener('mouseenter',()=>{paused=true;stopHomeShowcase();});
+  root.addEventListener('mouseleave',()=>{paused=false;schedule(6000);});
+  root.addEventListener('focusin',()=>{paused=true;stopHomeShowcase();});
+  root.addEventListener('focusout',event=>{
+    if(!root.contains(event.relatedTarget)){paused=false;schedule(6000);}
+  });
+  root.addEventListener('touchstart',()=>{paused=true;stopHomeShowcase();},{passive:true});
+  root.addEventListener('touchend',()=>{paused=false;schedule(6000);},{passive:true});
+  setSlide(0);
+  schedule(1000);
+}
+function validateCarouselUrl(value){
+  let url;
+  try{url=new URL(String(value||'').trim());}
+  catch(error){throw new Error('Masukkan tautan postingan yang valid.');}
+  if(url.protocol!=='https:')throw new Error('Tautan harus menggunakan HTTPS.');
+  return url.href;
+}
+async function removeCarouselImage(path){
+  if(!path||!user()||!path.startsWith(user().id+'/carousel/'))return;
+  const result=await supabase.storage.from(BUCKET).remove([path]);
+  if(result.error)console.warn('Gambar carousel lama belum dapat dihapus:',result.error.message);
 }
 
 function sanitizeRichHTML(value){
@@ -265,7 +370,7 @@ function ask(title,fields){
       }else if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
       else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
       else if(f.t==='sel')input='<select name="'+f.k+'">'+f.o.map(o=>'<option '+(o===(f.v||f.o[0])?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
-      else input='<input name="'+f.k+'" type="'+(f.t==='password'?'password':'text')+'" '+(f.req?'required':'')+' value="'+esc(f.v||'')+'">';
+      else input='<input name="'+f.k+'" type="'+(f.t==='password'?'password':f.t==='url'?'url':'text')+'" '+(f.req?'required':'')+' value="'+esc(f.v||'')+'">';
       return f.t==='rich'?'<div class="rich-field"><div class="rich-field-label">'+f.l+'</div>'+input+'</div>':'<label>'+f.l+input+'</label>';
     }).join('');
     d.innerHTML='<form><h2>'+title+'</h2>'+controls+'<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>';
@@ -438,6 +543,58 @@ async function performAction(act,id,t){
   if(act==='retry'){await refreshData();render();return;}
   if(act==='import-legacy'){await importLegacy();return;}
 
+  if(act==='add-carousel'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat mengelola carousel.');
+    const v=await ask('Tambah Carousel',[
+      {k:'file',l:'Foto karya',t:'file',req:true},
+      {k:'title',l:'Judul karya',req:true},
+      {k:'caption',l:'Caption (opsional)',t:'area'},
+      {k:'target_url',l:'Link postingan asli (HTTPS)',t:'url',req:true}
+    ]);
+    if(!v)return;
+    if(!v.file||!v.file.size)throw new Error('Pilih foto untuk slide carousel.');
+    const targetUrl=validateCarouselUrl(v.target_url);
+    const path=await uploadImage(v.file,'carousel',1800);
+    const result=await supabase.from('carousel_slides').insert({
+      title:v.title.trim(),caption:v.caption||'',image_path:path,target_url:targetUrl,created_by:user().id
+    }).select().single();
+    if(result.error){await supabase.storage.from(BUCKET).remove([path]);throw result.error;}
+    await refreshData();render();return;
+  }
+  if(act==='edit-carousel'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat mengelola carousel.');
+    const slide=(db.carousel||[]).find(x=>x.id===id);
+    if(!slide)throw new Error('Slide carousel tidak ditemukan.');
+    const v=await ask('Edit Carousel',[
+      {k:'title',l:'Judul karya',req:true,v:slide.title},
+      {k:'caption',l:'Caption (opsional)',t:'area',v:slide.caption},
+      {k:'target_url',l:'Link postingan asli (HTTPS)',t:'url',req:true,v:slide.target_url},
+      {k:'file',l:'Ganti foto (opsional)',t:'file'}
+    ]);
+    if(!v)return;
+    const targetUrl=validateCarouselUrl(v.target_url);
+    const newPath=v.file&&v.file.size?await uploadImage(v.file,'carousel',1800):slide.image_path;
+    const result=await supabase.from('carousel_slides').update({
+      title:v.title.trim(),caption:v.caption||'',target_url:targetUrl,image_path:newPath
+    }).eq('id',id);
+    if(result.error){
+      if(newPath!==slide.image_path)await supabase.storage.from(BUCKET).remove([newPath]);
+      throw result.error;
+    }
+    if(newPath!==slide.image_path)await removeCarouselImage(slide.image_path);
+    await refreshData();render();return;
+  }
+  if(act==='delete-carousel'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat mengelola carousel.');
+    const slide=(db.carousel||[]).find(x=>x.id===id);
+    if(!slide)throw new Error('Slide carousel tidak ditemukan.');
+    if(!confirm('Hapus slide "'+slide.title.replace(/["']/g,'')+'" dari homepage?'))return;
+    const result=await supabase.from('carousel_slides').delete().eq('id',id);
+    if(result.error)throw result.error;
+    await removeCarouselImage(slide.image_path);
+    await refreshData();render();return;
+  }
+
   if(act==='addf'){
     if(!isAdmin())throw new Error('Hanya admin yang dapat membuat folder/project.');
     const v=await ask('Project baru',[{k:'name',l:'Nama project',req:true},{k:'note',l:'Catatan singkat (opsional)',t:'area'}]);
@@ -515,7 +672,7 @@ document.addEventListener('click',async e=>{
   if(g){location.hash=g.dataset.go;return;}
   const a=e.target.closest('[data-act]');
   if(!a)return;
-  try{await performAction(a.dataset.act,location.hash.slice(1).split('/')[1],location.hash.slice(1).split('/')[0]);}
+  try{await performAction(a.dataset.act,a.dataset.slideId||location.hash.slice(1).split('/')[1],location.hash.slice(1).split('/')[0]);}
   catch(error){console.error(error);alert(error.message||'Terjadi kesalahan.');}
 });
 document.addEventListener('keydown',e=>{
