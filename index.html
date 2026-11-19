@@ -65,6 +65,28 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media(max-width:640px){.folder{padding:24px 18px 18px}.book{grid-template-columns:1fr}.book .card{max-width:190px}}
  .authline{margin-top:5px;font-size:12px;color:var(--gray)}.authline a{margin-left:7px}.authline a:first-child{margin-left:0} .note{max-width:310px} @media(max-width:640px){.note{max-width:55%;font-size:11px}}
+/* Editorial home treatment */
+.home-intro{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:28px;align-items:center;margin:4px 0 30px;padding:24px 26px;background:linear-gradient(112deg,rgba(255,252,242,.78),rgba(230,222,201,.55));border:1px solid rgba(150,139,115,.28);border-radius:3px;position:relative;overflow:hidden}
+.home-intro:after{content:"";position:absolute;width:220px;height:220px;border:1px solid rgba(140,130,108,.2);border-radius:50%;right:76px;top:-118px;box-shadow:0 0 0 18px rgba(140,130,108,.035),0 0 0 38px rgba(140,130,108,.025);pointer-events:none}
+.intro-eyebrow,.section-kicker{font:10px 'Instrument Serif',serif;letter-spacing:.19em;text-transform:uppercase;color:#8c8371}
+.intro-copy p{max-width:540px;margin:9px 0 0;font:italic clamp(18px,2.5vw,23px)/1.35 'Cormorant Garamond',serif;color:#5d5a52}
+.intro-mark{position:relative;z-index:1;text-align:center;border-left:1px solid rgba(140,130,108,.35);padding:4px 0 4px 22px}
+.intro-mark strong{display:block;font:italic 58px/.9 'Cormorant Garamond',serif;font-weight:500;color:#8a826f}
+.intro-mark span{display:block;margin-top:9px;font-size:10px;letter-spacing:.16em;color:#8c8371}
+.collection-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:0 0 15px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.collection-heading h2{margin:0;font:italic 27px/1 'Cormorant Garamond',serif;font-weight:500}
+.collection-count{font-size:11px;letter-spacing:.1em;color:var(--gray);text-align:right}
+.home-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:27px}
+.home-grid .ftile{margin-top:12px;aspect-ratio:1.35;background:linear-gradient(145deg,#d9d1be,#c7bea9);box-shadow:0 9px 18px rgba(60,58,50,.13)}
+.home-grid .ftile:before{background:#c7bea9}
+.home-grid .ftile:after{height:82%;background:linear-gradient(145deg,#e3dccb,#d5ccb8);border-top:1px solid rgba(255,255,255,.35)}
+.home-grid .card{padding:0 2px}
+.home-grid .card h3{font:italic 22px/1.05 'Cormorant Garamond',serif;margin:12px 0 4px}
+.home-grid .card p{font-size:12px;letter-spacing:.025em}
+.folder-index{position:absolute;z-index:1;right:13px;bottom:10px;font-size:9px;letter-spacing:.14em;color:#928a78}
+.home-grid .add .cover{aspect-ratio:1.35!important;margin-top:12px!important;border-radius:0 14px 8px 8px}
+.home-colophon{display:flex;justify-content:space-between;gap:12px;margin-top:28px;padding-top:12px;border-top:1px solid var(--line);font-size:10px;letter-spacing:.12em;color:#928a78}
+@media(max-width:640px){.home-intro{grid-template-columns:1fr;gap:16px;padding:19px}.intro-mark{display:flex;align-items:center;gap:12px;text-align:left;border-left:0;border-top:1px solid rgba(140,130,108,.35);padding:12px 0 0}.intro-mark strong{font-size:38px}.intro-mark span{margin:0}.home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.collection-heading h2{font-size:24px}.home-colophon{font-size:9px}}
 </style>
 </head>
 <body>
@@ -160,9 +182,13 @@ function render(){
     A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
       '<div class="read">'+(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?esc(w.text):'')+'</div>','b/'+w.bid);
   }else{
-    A.innerHTML=frame('Athenaeum','(karya penulis &amp; pelukis kami)','- pilih satu folder -',
-      '<div class="grid">'+(db.folders.length?db.folders.map(f=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>')+
-      (isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:4/3;margin-top:14px">+</div><h3>Folder baru</h3></div>':'')+'</div>');
+    const coverCount=db.books.length,workCount=db.works.length;
+    const intro='<section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Ruang untuk menyimpan gagasan, merawat imajinasi, dan mempertemukan karya penulis serta pelukis kami.</p></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section>';
+    const heading='<div class="collection-heading"><div><span class="section-kicker">THE ARCHIVE</span><h2>The Collections</h2></div><div class="collection-count">'+db.folders.length+' PROJECTS&nbsp; · &nbsp;'+coverCount+' COVERS&nbsp; · &nbsp;'+workCount+' WORKS</div></div>';
+    const cards=db.folders.length?db.folders.map((f,i)=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"><span class="folder-index">COLLECTION '+String(i+1).padStart(2,'0')+'</span></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover dalam koleksi</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>';
+    const add=isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:1.35;margin-top:12px">+</div><h3>Folder baru</h3><p>Tambahkan koleksi</p></div>':'';
+    const colophon='<div class="home-colophon"><span>AN OPEN SHELF FOR CREATIVE WORK</span><span>WORDS · IMAGES · IDEAS</span></div>';
+    A.innerHTML=frame('Athenaeum','(karya penulis &amp; pelukis kami)','- explore the archive -',intro+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon);
   }
 }
 
