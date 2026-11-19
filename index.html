@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Arsip Circle</title>
+<title>Athenaeum</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -124,7 +124,7 @@ function render(){
     A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),`<a data-act="delw">hapus karya</a>`,
       `<div class="read">${w.img?`<img src="${w.img}" alt="${esc(w.title)}">`:''}${w.text?esc(w.text):''}</div>`,'b/'+w.bid);
   }else{
-    A.innerHTML=frame('Arsip Circle','(karya penulis &amp; pelukis kami)','- pilih satu folder -',
+    A.innerHTML=frame('Athenaeum','(karya penulis &amp; pelukis kami)','- pilih satu folder -',
       `<div class="grid">${db.folders.map(f=>`<div class="card" data-go="f/${f.id}" tabindex="0"><div class="ftile"></div><h3>${esc(f.name)}</h3><p>${db.books.filter(b=>b.fid===f.id).length} cover</p></div>`).join('')}
       <div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:4/3;margin-top:14px">+</div><h3>Folder baru</h3></div></div>`);
   }
