@@ -294,6 +294,15 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .publish-preview-body .read img{max-width:100%}
 @media(max-width:640px){.draft-row{align-items:flex-start;flex-direction:column}.publish-preview-body{margin-top:25px}.publish-preview-body h2{font-size:32px}}
 
+
+/* Reading progress in the pinned toolbar */
+.reader-toolbar{position:sticky}
+.reader-progress-track{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(127,117,96,.16);overflow:hidden}
+.reader-progress-fill{width:0%;height:100%;background:#8b826c;transition:width .12s linear}
+.reader-overlay[data-theme="night"] .reader-progress-fill{background:#d3c5a9}
+.reader-progress-label{font:11px 'Instrument Serif',serif;opacity:.75;min-width:28px;text-align:right}
+@media(max-width:640px){.reader-progress-label{margin-left:auto}}
+
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -538,6 +547,23 @@ function projectTabs(activeId){
 }
 const cover=b=>b.img?'<img src="'+esc(b.img)+'" alt="'+esc(b.title)+'">':'<div class="gen" style="background:'+tone(b.title)+'">'+esc(b.title)+'</div>';
 
+function updateReadingProgress(overlay=document.querySelector('[data-reader-overlay].is-open')){
+  if(!overlay||!overlay.classList.contains('is-open'))return;
+  const range=Math.max(0,overlay.scrollHeight-overlay.clientHeight);
+  const percent=range>0?Math.min(100,Math.max(0,Math.round(overlay.scrollTop/range*100))):100;
+  const fill=overlay.querySelector('[data-reading-progress]');
+  const label=overlay.querySelector('[data-reading-progress-label]');
+  const bar=overlay.querySelector('.reader-progress-track');
+  if(fill)fill.style.width=percent+'%';
+  if(label)label.textContent=percent+'%';
+  if(bar)bar.setAttribute('aria-valuenow',String(percent));
+}
+function mountReadingProgress(root){
+  const overlay=root.querySelector('[data-reader-overlay]');
+  if(overlay)overlay.addEventListener('scroll',()=>updateReadingProgress(overlay),{passive:true});
+}
+window.addEventListener('resize',()=>updateReadingProgress());
+
 function render(){
   stopHomeShowcase();
   const parts=location.hash.slice(1).split('/'),t=parts[0],id=parts[1];
@@ -568,9 +594,10 @@ function render(){
     const workContent=(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'');
     const soundtrack=workSoundtrack(w);
     const readerSoundtrack=workSoundtrack(w,true);
-    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
+    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button><span class="reader-progress-label" data-reading-progress-label>0%</span></div><div class="reader-progress-track" role="progressbar" aria-label="Progres membaca" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="reader-progress-fill" data-reading-progress></div></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+linkedContributorName(w.author),actions,
       (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
+    mountReadingProgress(A);
   }else if(t==='drafts'&&isMember()){
     const drafts=localWorkDrafts();
     const body='<div class="drafts-heading"><span class="section-kicker">PERSONAL WRITING DESK</span><h2>My Drafts</h2><p>Draft tersimpan otomatis di browser perangkat ini. Tidak terbit dan tidak tersinkron ke perangkat lain. Foto yang belum diterbitkan harus dipilih ulang.</p></div>'+
@@ -1263,6 +1290,7 @@ document.addEventListener('click',async e=>{
     if(action==='open'){
       overlay.classList.add('is-open');
       setReadingSoundtrack(true);
+      requestAnimationFrame(()=>updateReadingProgress(overlay));
       document.body.classList.add('reading-mode-active');
       const closeButton=overlay.querySelector('[data-reading-action="close"]');
       if(closeButton)closeButton.focus({preventScroll:true});
@@ -1274,9 +1302,11 @@ document.addEventListener('click',async e=>{
       const current=parseInt(getComputedStyle(overlay).getPropertyValue('--reader-size'),10)||20;
       const next=Math.max(16,Math.min(30,current+(action==='larger'?2:-2)));
       overlay.style.setProperty('--reader-size',next+'px');
+      requestAnimationFrame(()=>updateReadingProgress(overlay));
     }else if(action==='width'){
       overlay.classList.toggle('reader-wide');
       readAction.textContent=overlay.classList.contains('reader-wide')?'Lebar: Luas':'Lebar teks';
+      requestAnimationFrame(()=>updateReadingProgress(overlay));
     }else if(action==='theme'){
       const themes=['paper','sepia','night'];
       const labels={paper:'Tema: Kertas',sepia:'Tema: Sepia',night:'Tema: Malam'};
