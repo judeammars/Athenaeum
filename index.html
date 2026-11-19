@@ -56,8 +56,26 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 .work em{font-size:13px;color:var(--gray);font-style:normal;white-space:nowrap}
 .btn{font:inherit;font-size:15px;background:transparent;border:1.5px solid var(--ink);color:var(--ink);border-radius:999px;padding:6px 18px;cursor:pointer}
 .btn:hover,.btn.pri{background:var(--ink);color:var(--paper)}
-.read{max-width:640px;margin:0 auto;font-size:19px;line-height:1.75;white-space:pre-wrap}
+.read{max-width:640px;margin:0 auto;font-size:19px;line-height:1.75;white-space:normal}
+.read p{margin:0 0 1em}
+.read ul,.read ol{padding-left:1.5em;margin:.5em 0 1em}
+.read blockquote{margin:1em 0;padding-left:1em;border-left:2px solid var(--line);color:var(--gray)}
+.read h2,.read h3{font-family:'Cormorant Garamond',serif;line-height:1.2;margin:1em 0 .4em}
 .read img{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+.rich-editor{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin-top:6px}
+.rich-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:8px;border-bottom:1px solid var(--line);background:var(--ivory2)}
+.rich-tool{min-width:34px;height:32px;padding:0 8px;border:1px solid rgba(110,102,85,.22);border-radius:6px;background:#fff;color:var(--ink);font:13px 'Instrument Serif',serif;cursor:pointer}
+.rich-tool:hover{background:#e9e2d2}
+.rich-tool.strong{font-weight:700}
+.rich-tool.italic{font-style:italic}
+.rich-tool.underline{text-decoration:underline}
+.rich-separator{width:1px;height:22px;background:var(--line);margin:0 3px}
+.rich-area{min-height:220px;max-height:48vh;overflow:auto;padding:13px 14px;color:var(--ink);font:16px/1.7 'Cormorant Garamond',serif;outline:none}
+.rich-area:focus{box-shadow:inset 0 0 0 1px rgba(140,130,108,.2)}
+.rich-area:empty:before{content:attr(data-placeholder);color:#a7a092;pointer-events:none}
+.rich-area p{margin:0 0 .8em}
+.rich-value{display:none!important}
+.rich-help{display:block;margin-top:6px;color:var(--gray);font-size:11px;font-weight:400}
 .empty{color:var(--gray);padding:14px 4px}
 dialog{border:none;border-radius:16px;background:var(--paper);color:var(--ink);padding:24px;width:min(430px,92vw);font-family:inherit}
 dialog::backdrop{background:rgba(50,52,48,.5)}
@@ -187,7 +205,7 @@ function render(){
     let actions='';
     if(canManage(w))actions='<a data-act="editw">edit karya</a> · <a data-act="delw">hapus karya</a>';
     A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
-      '<div class="read">'+(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?esc(w.text):'')+'</div>','b/'+w.bid);
+      '<div class="read">'+(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'')+'</div>','b/'+w.bid);
   }else{
     const coverCount=db.books.length,workCount=db.works.length;
     const intro='<section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section>';
@@ -199,12 +217,49 @@ function render(){
   }
 }
 
+function sanitizeRichHTML(value){
+  const raw=String(value??'');
+  if(!/<\/?(?:p|div|br|strong|b|em|i|u|s|ul|ol|li|blockquote|h[23])\b/i.test(raw)){
+    return esc(raw).replace(/\r\n?|\n/g,'<br>');
+  }
+  const parsed=new DOMParser().parseFromString(raw,'text/html');
+  const allowed=new Set(['p','div','br','strong','b','em','i','u','s','ul','ol','li','blockquote','h2','h3']);
+  const clean=node=>{
+    if(node.nodeType===3)return esc(node.nodeValue);
+    if(node.nodeType!==1)return '';
+    const tag=node.tagName.toLowerCase();
+    if(['script','style','iframe','object','svg','math'].includes(tag))return '';
+    const children=Array.from(node.childNodes).map(clean).join('');
+    if(!allowed.has(tag))return children;
+    if(tag==='br')return '<br>';
+    const alignment=['left','center','right','justify'].includes(node.style.textAlign)?' style="text-align:'+node.style.textAlign+'"':'';
+    return '<'+tag+alignment+'>'+children+'</'+tag+'>';
+  };
+  return Array.from(parsed.body.childNodes).map(clean).join('');
+}
+
 function ask(title,fields){
   return new Promise(resolve=>{
     const d=$('#dlg');
     const controls=fields.map(f=>{
       let input='';
-      if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
+      if(f.t==='rich'){
+        const value=sanitizeRichHTML(f.v||'');
+        input='<div class="rich-editor"><div class="rich-toolbar" role="toolbar" aria-label="Pemformatan tulisan">'+
+          '<button type="button" class="rich-tool strong" data-rich-command="bold" title="Tebal" aria-label="Tebal">B</button>'+
+          '<button type="button" class="rich-tool italic" data-rich-command="italic" title="Miring" aria-label="Miring">I</button>'+
+          '<button type="button" class="rich-tool underline" data-rich-command="underline" title="Garis bawah" aria-label="Garis bawah">U</button>'+
+          '<span class="rich-separator"></span>'+
+          '<button type="button" class="rich-tool" data-rich-command="justifyLeft" title="Rata kiri">Kiri</button>'+
+          '<button type="button" class="rich-tool" data-rich-command="justifyCenter" title="Rata tengah">Tengah</button>'+
+          '<button type="button" class="rich-tool" data-rich-command="justifyRight" title="Rata kanan">Kanan</button>'+
+          '<button type="button" class="rich-tool" data-rich-command="justifyFull" title="Rata kiri-kanan">Justify</button>'+
+          '<span class="rich-separator"></span>'+
+          '<button type="button" class="rich-tool" data-rich-command="insertUnorderedList" title="Daftar poin">• List</button>'+
+          '<button type="button" class="rich-tool" data-rich-command="insertOrderedList" title="Daftar bernomor">1. List</button>'+
+          '<button type="button" class="rich-tool" data-rich-command="removeFormat" title="Hapus format">Clear</button>'+
+          '</div><div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" data-rich-editor="'+f.k+'" data-placeholder="Mulai tulis karya di sini...">'+value+'</div><input class="rich-value" type="hidden" name="'+f.k+'" value="'+esc(value)+'"></div><small class="rich-help">Pilih teks, lalu gunakan toolbar untuk mengatur format dan perataan.</small>';
+      }else if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
       else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
       else if(f.t==='sel')input='<select name="'+f.k+'">'+f.o.map(o=>'<option '+(o===(f.v||f.o[0])?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
       else input='<input name="'+f.k+'" type="'+(f.t==='password'?'password':'text')+'" '+(f.req?'required':'')+' value="'+esc(f.v||'')+'">';
@@ -212,11 +267,38 @@ function ask(title,fields){
     }).join('');
     d.innerHTML='<form><h2>'+title+'</h2>'+controls+'<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>';
     d.showModal();
+    const syncRich=editor=>{
+      const hidden=d.querySelector('input[name="'+editor.dataset.richEditor+'"]');
+      if(hidden)hidden.value=sanitizeRichHTML(editor.innerHTML);
+    };
+    d.querySelectorAll('[data-rich-editor]').forEach(editor=>{
+      editor.addEventListener('input',()=>syncRich(editor));
+      editor.addEventListener('paste',event=>{
+        event.preventDefault();
+        const plain=event.clipboardData?event.clipboardData.getData('text/plain'):'';
+        document.execCommand('insertText',false,plain);
+        syncRich(editor);
+      });
+    });
+    d.querySelectorAll('[data-rich-command]').forEach(button=>{
+      button.addEventListener('mousedown',event=>event.preventDefault());
+      button.addEventListener('click',()=>{
+        const editor=d.querySelector('[data-rich-editor]');
+        if(!editor)return;
+        editor.focus();
+        document.execCommand(button.dataset.richCommand,false,null);
+        syncRich(editor);
+      });
+    });
     let settled=false;
     const finish=value=>{if(settled)return;settled=true;d.close();resolve(value);};
     $('#x').onclick=()=>finish(null);
     d.oncancel=e=>{e.preventDefault();finish(null);};
-    d.querySelector('form').onsubmit=e=>{e.preventDefault();const out={};new FormData(e.target).forEach((v,k)=>out[k]=v);finish(out);};
+    d.querySelector('form').onsubmit=e=>{
+      e.preventDefault();
+      d.querySelectorAll('[data-rich-editor]').forEach(syncRich);
+      const out={};new FormData(e.target).forEach((v,k)=>out[k]=v);finish(out);
+    };
   });
 }
 
@@ -331,11 +413,11 @@ async function performAction(act,id,t){
   }
   if(act==='addw'){
     if(!isMember())throw new Error('Masuk sebagai kontributor untuk menambahkan karya.');
-    const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:true},{k:'author',l:'Nama penulis / pelukis',req:true},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'area'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
+    const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:true},{k:'author',l:'Nama penulis / pelukis',req:true},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'rich'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
     if(!v)return;
     if(v.kind==='Gambar'&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
     const path=v.kind==='Gambar'?await uploadImage(v.file,'works',1600):null;
-    const r=await supabase.from('works').insert({book_id:id,title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?v.text||'':'',image_path:path,created_by:user().id});
+    const r=await supabase.from('works').insert({book_id:id,title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path,created_by:user().id});
     if(r.error){if(path)await supabase.storage.from(BUCKET).remove([path]);throw r.error;}
     await refreshData();render();return;
   }
@@ -350,11 +432,11 @@ async function performAction(act,id,t){
   }
   if(act==='editw'){
     const w=db.works.find(x=>x.id===id);if(!canManage(w))throw new Error('Anda tidak memiliki izin mengubah karya ini.');
-    const v=await ask('Edit karya',[{k:'title',l:'Judul karya',req:true,v:w.title},{k:'author',l:'Nama penulis / pelukis',req:true,v:w.author},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:w.kind},{k:'text',l:'Isi tulisan',t:'area',v:w.text},{k:'file',l:'Ganti gambar (opsional)',t:'file'}]);
+    const v=await ask('Edit karya',[{k:'title',l:'Judul karya',req:true,v:w.title},{k:'author',l:'Nama penulis / pelukis',req:true,v:w.author},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:w.kind},{k:'text',l:'Isi tulisan',t:'rich',v:w.text},{k:'file',l:'Ganti gambar (opsional)',t:'file'}]);
     if(!v)return;
     if(v.kind==='Gambar'&&!w.image_path&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
     const path=v.kind==='Tulisan'?null:(v.file&&v.file.size?await uploadImage(v.file,'works',1600):w.image_path);
-    const r=await supabase.from('works').update({title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?v.text||'':'',image_path:path}).eq('id',id);
+    const r=await supabase.from('works').update({title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path}).eq('id',id);
     if(r.error)throw r.error;
     await refreshData();render();return;
   }
