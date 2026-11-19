@@ -92,7 +92,7 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 .reader-control{border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;padding:6px 10px;font:12px 'Instrument Serif',serif;cursor:pointer}
 .reader-control:hover{background:rgba(120,110,90,.12)}
 .reader-content{width:var(--reader-width,700px);max-width:100%;margin:0 auto;font-size:var(--reader-size,20px);line-height:1.85}
-.reader-content.read{max-width:none;font-size:inherit;line-height:inherit;color:inherit}
+.reader-content.read{max-width:none;font-size:var(--reader-size,20px);line-height:1.85;color:inherit}
 .reader-content.read p{margin:0 0 1.15em}
 .reader-content.read h2,.reader-content.read h3{color:inherit}
 .reader-content.read blockquote{border-color:currentColor;color:inherit;opacity:.78}
@@ -450,8 +450,8 @@ function ask(title,fields){
     };
     const updateWritingCount=()=>{
       if(!richEditor)return;
-      const plain=(richEditor.innerText||'').replace(/\\u00a0/g,' ').trim();
-      const words=plain?plain.split(/\\s+/).filter(Boolean).length:0;
+      const plain=(richEditor.innerText||'').replace(/\u00a0/g,' ').trim();
+      const words=plain?plain.split(/\s+/).filter(Boolean).length:0;
       const count=d.querySelector('[data-writing-count]');
       if(count)count.textContent=words+' kata · '+plain.length+' karakter';
     };
@@ -467,6 +467,7 @@ function ask(title,fields){
         richEditor.focus();
         document.execCommand('insertText',false,plain);
         syncRich(richEditor);
+        updateWritingCount();
         captureRichSelection();
       });
       richEditor.addEventListener('keydown',event=>{
