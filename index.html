@@ -400,25 +400,18 @@ function showBootError(message){
 }
 let createSupabaseClient=null;
 async function loadSupabaseSDK(){
-  const sources=[
-    'https://esm.sh/@supabase/supabase-js@2?bundle',
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
-  ];
-  let lastError=null;
-  for(const src of sources){
-    try{
-      const sdk=await import(src);
-      if(sdk&&typeof sdk.createClient==='function'){
-        createSupabaseClient=sdk.createClient;
-        return;
-      }
-      lastError=new Error('Modul Supabase berhasil dimuat, tetapi createClient tidak ditemukan.');
-    }catch(error){
-      lastError=error;
-      console.warn('Gagal memuat Supabase dari',src,error);
+  const src='https://esm.sh/@supabase/supabase-js@2?bundle';
+  try{
+    const sdk=await import(src);
+    if(sdk&&typeof sdk.createClient==='function'){
+      createSupabaseClient=sdk.createClient;
+      return;
     }
+    throw new Error('Fungsi createClient tidak ditemukan pada modul Supabase.');
+  }catch(error){
+    console.error('Supabase SDK gagal dimuat:',error);
+    throw new Error('Pustaka koneksi gagal dimuat. Periksa koneksi internet lalu coba lagi.');
   }
-  throw new Error('SDK Supabase tidak dapat dimuat. '+(lastError&&lastError.message?lastError.message:'Periksa koneksi CDN.'));
 }
 (async function init(){
   try{
