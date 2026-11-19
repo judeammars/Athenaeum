@@ -177,8 +177,7 @@ function render(){
     if(canManage(b))actions='<a data-act="editb">edit cover</a> · <a data-act="delb">hapus cover</a>';
     const project=db.folders.find(f=>f.id===b.fid);
     A.innerHTML=frame(esc(project?project.name:'Project'),'',actions,
-      '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'
-      '<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
+      '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
       (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+'</div></div>','f/'+b.fid);
   }else if(t==='w'&&db.works.find(x=>x.id===id)){
     const w=db.works.find(x=>x.id===id);
