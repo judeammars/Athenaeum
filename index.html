@@ -264,19 +264,6 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .contributor-telegram{margin:10px 0 2px;font:14px 'Instrument Serif',serif}
 .contributor-telegram a{display:inline-flex;align-items:center;gap:5px;color:var(--ink);text-decoration:underline;text-underline-offset:4px}
 .contributor-telegram a:hover{opacity:.65}
-
-/* Published-work soundtrack beside the title, only when a track is attached. */
-.top.work-header{display:grid;grid-template-columns:minmax(120px,1fr) minmax(245px,385px) minmax(80px,auto);gap:18px;align-items:start}
-.top.work-header h1{min-width:0;overflow-wrap:anywhere}
-.top.work-header .note{min-width:0}
-.work-header-music{min-width:0;align-self:start}
-.work-header-music .work-music-embed{width:100%;max-width:100%;margin:0}
-.work-header-music .work-music-embed iframe{width:100%;max-width:100%}
-@media(max-width:720px){
-  .top.work-header{grid-template-columns:minmax(0,1fr) auto;gap:14px}
-  .top.work-header .note{grid-column:2;grid-row:1}
-  .top.work-header .work-header-music{grid-column:1/-1;grid-row:2;width:100%;max-width:420px}
-}
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -436,7 +423,7 @@ const siteNav=()=>{
     '<button type="button" data-scroll-collections>The Collections</button>'+
     '<button type="button" data-go="contributors" class="'+(['contributors','member'].includes(route)?'is-current':'')+'">The Contributors</button></nav>';
 };
-const frame=(h,sub,note,body,back,tabs='',headerMusic='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top'+(headerMusic?' work-header':'')+'"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1>'+(headerMusic?'<div class="work-header-music">'+headerMusic+'</div>':'')+'<div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+siteNav()+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
+const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+siteNav()+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
 
 function projectTabs(activeId){
   return '<nav class="project-tabs" aria-label="Navigasi project">'+db.folders.map(f=>'<button type="button" class="project-tab '+(f.id===activeId?'active':'')+'" data-go="f/'+esc(f.id)+'" '+(f.id===activeId?'aria-current="page"':'')+'>'+esc(f.name)+'</button>').join('')+(isAdmin()?'<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button>':'')+'</nav>';
@@ -474,7 +461,7 @@ function render(){
     const readerSoundtrack=workSoundtrack(w,true);
     const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+linkedContributorName(w.author),actions,
-      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid,'',soundtrack);
+      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
   }else if(t==='contributors'){
     const cards=(db.contributors||[]).map(c=>{
       const count=worksByContributor(c).length;
