@@ -69,7 +69,7 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 <body>
 <div id="app"></div>
 <dialog id="dlg"></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>\n<script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const tones=['#8c8a84','#6f7470','#a59f8f','#7d7f7a','#b0a99a','#5f6360'];
@@ -79,7 +79,13 @@ const SB_KEY='sb_publishable_a51cyBh8tj1kBOiVkgAyKQ_b6ItnHrx';
 const BUCKET='athenaeum-artworks';
 const MEMBER_EMAIL='contributors@athenaeum.invalid';
 const ADMIN_EMAIL='admin@athenaeum.invalid';
-const supabase=window.supabase.createClient(SB_URL,SB_KEY);
+const createSupabaseClient=window.supabase&&window.supabase.createClient;
+if(typeof createSupabaseClient!=='function'){
+  const app=document.querySelector('#app');
+  if(app)app.innerHTML='<div style="max-width:680px;margin:12vh auto;padding:28px;background:#f2ecdd;border-radius:18px;color:#3a3935;font:18px Georgia,serif"><h1 style="font-style:italic">Athenaeum</h1><p>Pustaka koneksi belum berhasil dimuat. Periksa koneksi internet, lalu muat ulang halaman.</p></div>';
+  throw new Error('Supabase JS CDN gagal dimuat.');
+}
+const supabase=createSupabaseClient(SB_URL,SB_KEY);
 let session=null,profile=null,db={folders:[],books:[],works:[]},legacyDb=null,loadingError=null;
 const user=()=>session&&session.user?session.user:null;
 const isAdmin=()=>!!(profile&&profile.role==='admin'&&profile.status==='active');
