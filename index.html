@@ -1,60 +1,141 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e8e6df">
-  <meta name="description" content="Athenaeum is a shared creative archive for writers and artists.">
-  <title>Athenaeum — a shared commonplace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arsip Circle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--ivory:#f2ecdd;--ivory2:#e6dec9;--paper:#fbf8ee;--gray:#8c8a84;--ink:#3a3935;--line:#d3cbb6}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:28px 16px 64px;font-family:'Instrument Serif',Georgia,serif;color:var(--ink);
+background:radial-gradient(ellipse at 20% 10%,#c4c8c3 0,transparent 55%),radial-gradient(ellipse at 85% 80%,#767d7b 0,transparent 60%),#a4a9a5;background-attachment:fixed}
+a,[data-go],[data-act]{cursor:pointer}
+.stage{max-width:1000px;margin:60px auto 0;position:relative}
+.stage::before{content:"";position:absolute;left:0;top:-40px;width:52%;height:64px;background:var(--ivory);border-radius:26px 26px 0 0}
+.folder{position:relative;background:var(--ivory);border-radius:0 26px 6px 6px;min-height:540px;padding:30px 36px 22px;display:flex;flex-direction:column;box-shadow:0 24px 50px rgba(40,42,38,.28)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:26px}
+h1{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:clamp(30px,6vw,44px);margin:0;line-height:1}
+h1 small{display:block;margin-top:4px;font-family:'Instrument Serif',serif;font-style:normal;font-size:11.5px;color:var(--gray);letter-spacing:.03em}
+.note{font-size:12.5px;color:var(--gray);text-align:right;letter-spacing:.04em}
+.note a{text-decoration:underline;text-underline-offset:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:24px;flex:1;align-content:start}
+.card h3{font-weight:400;font-size:17.5px;margin:10px 0 2px;line-height:1.15}
+.card p{margin:0;font-size:13px;color:var(--gray)}
+.cover{aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:var(--ivory2);box-shadow:0 6px 14px rgba(60,58,50,.2);transition:transform .2s}
+.card:hover .cover,.card:focus-visible .cover{transform:translateY(-5px)}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.gen{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;line-height:1.1;color:var(--paper)}
+.add .cover{background:transparent;border:1.5px dashed var(--gray);box-shadow:none;display:grid;place-items:center;font-size:36px;color:var(--gray)}
+.ftile{position:relative;aspect-ratio:4/3;margin-top:14px;background:#cfc7b2;border-radius:0 14px 8px 8px;box-shadow:0 6px 14px rgba(60,58,50,.18);transition:transform .2s}
+.ftile::before{content:"";position:absolute;left:0;top:-14px;width:46%;height:18px;background:#cfc7b2;border-radius:10px 10px 0 0}
+.ftile::after{content:"";position:absolute;inset:auto 0 0 0;height:78%;background:#ddd5c0;border-radius:0 14px 8px 8px}
+.card:hover .ftile{transform:translateY(-5px)}
+.memo{align-self:start;background:var(--paper);padding:20px 14px 14px;font-size:14.5px;line-height:23px;color:#6b5a5a;box-shadow:0 4px 10px rgba(60,58,50,.15);position:relative;
+background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px);background-position:0 14px}
+.memo::before{content:"";position:absolute;top:-6px;left:50%;width:14px;height:14px;border-radius:50%;background:#8c8a84;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:30px;font-size:14px}
+.foot span:nth-child(2){color:var(--gray);letter-spacing:.3em}
+.book{display:grid;grid-template-columns:210px 1fr;gap:34px;flex:1}
+.book h2{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:30px;margin:0 0 2px}
+.works{margin:22px 0 14px;border-top:1px solid var(--line)}
+.work{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:13px 4px;border-bottom:1px solid var(--line);font-size:18px}
+.work:hover{background:var(--ivory2)}
+.work em{font-size:13px;color:var(--gray);font-style:normal;white-space:nowrap}
+.btn{font:inherit;font-size:15px;background:transparent;border:1.5px solid var(--ink);color:var(--ink);border-radius:999px;padding:6px 18px;cursor:pointer}
+.btn:hover,.btn.pri{background:var(--ink);color:var(--paper)}
+.read{max-width:640px;margin:0 auto;font-size:19px;line-height:1.75;white-space:pre-wrap}
+.read img{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+.empty{color:var(--gray);padding:14px 4px}
+dialog{border:none;border-radius:16px;background:var(--paper);color:var(--ink);padding:24px;width:min(430px,92vw);font-family:inherit}
+dialog::backdrop{background:rgba(50,52,48,.5)}
+dialog h2{margin:0 0 14px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:26px}
+label{display:block;font-size:14px;color:var(--gray);margin-bottom:12px}
+input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px}
+.btns{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(max-width:640px){.folder{padding:24px 18px 18px}.book{grid-template-columns:1fr}.book .card{max-width:190px}}
+</style>
 </head>
 <body>
-<div class="grain"></div>
-<div class="site">
-  <header class="topbar">
-    <a class="brand" href="#top"><span class="brand-mark">a.</span><span><b>ATHENAEUM</b><small>a shared commonplace</small></span></a>
-    <nav id="nav"><a class="active" href="#archive">The archive</a><a href="#about">About</a><button id="contributeTop">Contribute <i>↗</i></button></nav>
-    <button class="menu" id="menu" aria-label="Open menu">☰</button>
-  </header>
-  <main id="top">
-    <section class="intro"><div><p class="eyebrow">✳ &nbsp; AN ARCHIVE OF SMALL UNIVERSES</p><h1>Where every work<br><em>finds a place.</em></h1></div><aside><p>A quiet corner for the things we write, draw, imagine, and leave for one another.</p><small>COLLECTION No. 001 / 2026</small></aside></section>
-    <section class="folder" id="archive"><div class="tab"><span>FOLDER 01 / KARYA-KARYA</span><b>✳</b></div><div class="paper">
-      <div class="folder-head"><div><p class="eyebrow">THE ATHENAEUM COLLECTION</p><h2>Collected <em>works</em><span>.</span></h2><p class="subtitle">A shelf for our many ways of seeing.</p></div><aside class="note"><i></i><small>A NOTE TO VISITORS</small><p>Take your time.<br>Every cover opens<br>into another world.</p><label>— the keepers</label></aside></div>
-      <div class="tools"><div class="filters"><button class="filter active" data-filter="all">All works <small id="allCount">04</small></button><button class="filter" data-filter="writing">Writing</button><button class="filter" data-filter="illustration">Illustration</button><button class="filter" data-filter="mixed">Mixed media</button></div><label class="search">⌕ <input id="search" type="search" placeholder="Find a title or a name..."></label></div>
-      <div class="shelf-meta"><span>— &nbsp; THE CURRENT SHELF</span><span id="volumeCount">04 VOLUMES</span></div>
-      <div class="grid" id="grid"></div>
-      <div class="empty" id="empty" hidden><b>✳</b><p>Nothing on this shelf just yet.</p><small>Try another search, or leave the first work here.</small><button id="emptyAdd">Add a volume ＋</button></div>
-      <footer class="folder-foot"><span>EST. FOR THE LOVE OF MAKING</span><b>✳ · ❧ · ✳</b><span>PAGE 01 / OPEN ENDED</span></footer>
-    </div></section>
-    <section class="about" id="about"><span>✳</span><div><p class="eyebrow">A LITTLE ABOUT THIS PLACE</p><p>Not a competition, not a timeline. Just a shared shelf where a drawing can sit beside a poem, where unfinished thoughts are welcome, and where every contributor gets to leave their name.</p></div><button id="contributeBottom">↗</button></section>
-  </main>
-  <footer class="site-foot"><span>ATHENAEUM © 2026</span><span>MADE OF WORDS, IMAGES & THE PEOPLE BETWEEN THEM</span><a href="#top">BACK TO TOP ↑</a></footer>
-</div>
-<div class="backdrop" id="volumeModal" hidden><section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle"><button class="close" data-close="volumeModal">×</button><div id="detail"></div></section></div>
-<div class="backdrop" id="uploadModal" hidden><section class="modal upload-modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle"><button class="close" data-close="uploadModal">×</button>
-  <header class="form-head"><p class="eyebrow">LEAVE SOMETHING ON THE SHELF</p><h2 id="uploadTitle">Add a <em>volume.</em></h2><p>Give your collection a cover, then tuck the works and their makers inside.</p></header>
-  <form id="form"><div class="fields">
-    <label class="wide">Volume title <i>*</i><input name="title" required maxlength="80" placeholder="e.g. Notes from the in-between"></label>
-    <label>Curated by<input name="curator" maxlength="60" placeholder="Your name / alias"></label>
-    <label>Collection type<select name="category"><option value="writing">Writing</option><option value="illustration">Illustration</option><option value="mixed">Mixed media</option></select></label>
-    <label class="wide">A short note<textarea name="description" rows="2" maxlength="180" placeholder="What lives between these covers?"></textarea></label>
-    <div class="wide"><small class="field-label">Cover image</small><label class="file" for="cover"><b>＋</b><span><strong>Choose an image</strong><small>JPG, PNG or WEBP · up to 2 MB</small></span><em id="coverName">No file selected</em></label><input id="cover" type="file" accept="image/png,image/jpeg,image/webp" hidden></div>
-  </div>
-  <div class="divider"><span>INSIDE THIS VOLUME</span></div><div id="works"><div class="work" data-index="0"><header><b>WORK 01</b><small>REQUIRED</small></header><div class="fields">
-    <label>Work title <i>*</i><input name="workTitle" required maxlength="90" placeholder="Title of the piece"></label>
-    <label>Made by <i>*</i><input name="author" required maxlength="60" placeholder="Writer / artist alias"></label>
-    <label>Format<select name="workType"><option value="writing">Writing</option><option value="illustration">Illustration</option><option value="poetry">Poetry</option><option value="mixed">Other / mixed</option></select></label>
-    <label class="wide">The work<textarea name="content" rows="4" placeholder="Write a piece, an excerpt, or a note about the work..."></textarea></label>
-    <div class="wide"><small class="field-label">Attach an image (optional)</small><label class="file inline-file" for="workImage0">＋ &nbsp; Choose artwork <em id="workName0">No image selected</em></label><input id="workImage0" name="workImage" type="file" accept="image/png,image/jpeg,image/webp" hidden></div>
-  </div></div></div>
-  <button class="add-work" id="addWork" type="button">＋ Add another work to this volume</button>
-  <div class="notice"><b>✳</b><p><strong>Preview workspace:</strong> submissions are saved in this browser only for now. Shared member uploads will be connected to the archive database in the next setup step.</p></div>
-  <div class="actions"><button class="cancel" data-close="uploadModal" type="button">Cancel</button><button class="submit" type="submit">Place on the shelf <i>↗</i></button></div><p class="error" id="error" role="alert"></p></form>
-</section></div>
-<div class="toast" id="toast" role="status"></div>
-<script src="app.js"></script>
+<div id="app"></div>
+<dialog id="dlg"></dialog>
+<script>
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tones=['#8c8a84','#6f7470','#a59f8f','#7d7f7a','#b0a99a','#5f6360'];
+const tone=s=>tones[[...s].reduce((a,c)=>a+c.charCodeAt(0),0)%tones.length];
+let db={folders:[],books:[],works:[]};
+
+/* Penyimpanan: IndexedDB di browser (lihat catatan di pesan) */
+const idb=new Promise(r=>{try{const q=indexedDB.open('arsip-circle',1);q.onupgradeneeded=()=>q.result.createObjectStore('k');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+async function load(){const d=await idb;if(!d)return;return new Promise(r=>{const g=d.transaction('k').objectStore('k').get('db');g.onsuccess=()=>{if(g.result)db=g.result;r()};g.onerror=()=>r()})}
+async function save(){const d=await idb;if(d)d.transaction('k','readwrite').objectStore('k').put(db,'db')}
+function seed(){
+  db.folders.push({id:'f1',name:'Folder 1',note:'karya-karya yang kami luangkan waktu untuknya. klik cover untuk membuka isinya.'});
+  db.books.push({id:'b1',fid:'f1',title:'Hujan di Kota Tua',owner:'Nara',year:'2025'},{id:'b2',fid:'f1',title:'Sketsa Senja',owner:'Ilya',year:'2025'});
+  db.works.push({id:'w1',bid:'b1',title:'Payung Merah',author:'Kael',kind:'Tulisan',text:'Hujan turun pelan di Kota Tua, dan lampu-lampu jalan menyala satu per satu seperti orang yang enggan pulang.\n\nIni contoh karya. Hapus atau tambahkan karyamu sendiri.'});
+}
+const img=(f,m)=>new Promise(r=>{if(!f)return r(null);const i=new Image,u=URL.createObjectURL(f);i.onload=()=>{const s=Math.min(1,m/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',.84))};i.onerror=()=>r(null);i.src=u});
+
+/* Form dialog */
+function ask(title,fields){return new Promise(res=>{
+  const d=$('#dlg');
+  d.innerHTML=`<form><h2>${title}</h2>${fields.map(f=>`<label>${f.l}${f.t==='area'?`<textarea name="${f.k}" rows="8"></textarea>`:f.t==='file'?`<input type="file" name="${f.k}" accept="image/*">`:f.t==='sel'?`<select name="${f.k}">${f.o.map(o=>`<option>${o}</option>`).join('')}</select>`:`<input name="${f.k}" ${f.req?'required':''}>`}</label>`).join('')}<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>`;
+  d.showModal();
+  $('#x').onclick=()=>{d.close();res(null)};
+  d.onclose=()=>res(null);
+  d.querySelector('form').onsubmit=e=>{e.preventDefault();const o={};new FormData(e.target).forEach((v,k)=>o[k]=v);d.onclose=null;d.close();res(o)};
+})}
+
+/* Tampilan */
+const frame=(h,sub,note,body,back)=>`<div class="stage"><div class="folder"><div class="top"><h1>${h}${sub?`<small>${sub}</small>`:''}</h1><div class="note">${note||''}</div></div>${body}<div class="foot"><a data-go="${back??''}" tabindex="0">${back===undefined?'arsip':'← kembali'}</a><span>✦ ♡ ✿</span><span>${new Date().getFullYear()}</span></div></div></div>`;
+const cover=b=>b.img?`<img src="${b.img}" alt="${esc(b.title)}">`:`<div class="gen" style="background:${tone(b.title)}">${esc(b.title)}</div>`;
+
+function render(){
+  const [t,id]=location.hash.slice(1).split('/');
+  const A=$('#app');window.scrollTo(0,0);
+  if(t==='f'&&db.folders.find(x=>x.id===id)){
+    const f=db.folders.find(x=>x.id===id),bs=db.books.filter(b=>b.fid===id);
+    A.innerHTML=frame(esc(f.name),'(tanpa urutan tertentu)',`<a data-act="delf">hapus folder</a>`,
+      `<div class="grid">${bs.map(b=>`<div class="card" data-go="b/${b.id}" tabindex="0"><div class="cover">${cover(b)}</div><h3>${esc(b.title)}</h3><p>${esc(b.owner)} (${esc(b.year)})</p></div>`).join('')}
+      <div class="card add" data-act="addb" tabindex="0"><div class="cover">+</div><h3>Cover baru</h3></div>${f.note?`<div class="memo">${esc(f.note)}</div>`:''}</div>`,'');
+  }else if(t==='b'&&db.books.find(x=>x.id===id)){
+    const b=db.books.find(x=>x.id===id),ws=db.works.filter(w=>w.bid===id);
+    A.innerHTML=frame('Isi cover','(karya di dalamnya)',`<a data-act="delb">hapus cover</a>`,
+      `<div class="book"><div class="card"><div class="cover">${cover(b)}</div></div><div><h2>${esc(b.title)}</h2><p class="card" style="margin:0"><p>oleh ${esc(b.owner)} (${esc(b.year)})</p></p>
+      <div class="works">${ws.length?ws.map(w=>`<div class="work" data-go="w/${w.id}" tabindex="0"><span>${esc(w.title)}</span><em>${esc(w.author)}, ${esc(w.kind.toLowerCase())}</em></div>`).join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>'}</div>
+      <button class="btn pri" data-act="addw">Tambah karya</button></div></div>`,'f/'+b.fid);
+  }else if(t==='w'&&db.works.find(x=>x.id===id)){
+    const w=db.works.find(x=>x.id===id);
+    A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),`<a data-act="delw">hapus karya</a>`,
+      `<div class="read">${w.img?`<img src="${w.img}" alt="${esc(w.title)}">`:''}${w.text?esc(w.text):''}</div>`,'b/'+w.bid);
+  }else{
+    A.innerHTML=frame('Arsip Circle','(karya penulis &amp; pelukis kami)','- pilih satu folder -',
+      `<div class="grid">${db.folders.map(f=>`<div class="card" data-go="f/${f.id}" tabindex="0"><div class="ftile"></div><h3>${esc(f.name)}</h3><p>${db.books.filter(b=>b.fid===f.id).length} cover</p></div>`).join('')}
+      <div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:4/3;margin-top:14px">+</div><h3>Folder baru</h3></div></div>`);
+  }
+}
+
+/* Aksi */
+document.addEventListener('click',async e=>{
+  const g=e.target.closest('[data-go]');if(g){location.hash=g.dataset.go;return}
+  const a=e.target.closest('[data-act]');if(!a)return;
+  const [t,id]=location.hash.slice(1).split('/'),act=a.dataset.act;
+  if(act==='addf'){const v=await ask('Folder baru',[{k:'name',l:'Nama folder',req:1},{k:'note',l:'Catatan singkat (opsional)',t:'area'}]);if(v){db.folders.push({id:uid(),name:v.name,note:v.note})}}
+  if(act==='addb'){const v=await ask('Cover baru',[{k:'title',l:'Judul',req:1},{k:'owner',l:'Nama pemilik cover',req:1},{k:'year',l:'Tahun'},{k:'file',l:'Gambar cover',t:'file'}]);if(v)db.books.push({id:uid(),fid:id,title:v.title,owner:v.owner,year:v.year||new Date().getFullYear(),img:await img(v.file,900)})}
+  if(act==='addw'){const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:1},{k:'author',l:'Nama penulis / pelukis',req:1},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'area'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
+    if(v)db.works.push({id:uid(),bid:id,title:v.title,author:v.author,kind:v.kind,text:v.kind==='Tulisan'?v.text:'',img:v.kind==='Gambar'?await img(v.file,1600):null})}
+  if(act==='delf'&&confirm('Hapus folder beserta semua isinya?')){const bs=db.books.filter(b=>b.fid===id).map(b=>b.id);db.works=db.works.filter(w=>!bs.includes(w.bid));db.books=db.books.filter(b=>b.fid!==id);db.folders=db.folders.filter(f=>f.id!==id);location.hash=''}
+  if(act==='delb'&&confirm('Hapus cover beserta karyanya?')){const b=db.books.find(x=>x.id===id);db.works=db.works.filter(w=>w.bid!==id);db.books=db.books.filter(x=>x.id!==id);location.hash='f/'+b.fid}
+  if(act==='delw'&&confirm('Hapus karya ini?')){const w=db.works.find(x=>x.id===id);db.works=db.works.filter(x=>x.id!==id);location.hash='b/'+w.bid}
+  await save();render();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('[data-go],[data-act]'))e.target.click()});
+window.addEventListener('hashchange',render);
+load().then(()=>{if(!db.folders.length){seed();save()}render()});
+</script>
 </body>
 </html>
