@@ -79,6 +79,49 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 .rich-area p{margin:0 0 .8em}
 .rich-value{display:none!important}
 .rich-help{display:block;margin-top:6px;color:var(--gray);font-size:11px;font-weight:400}
+
+/* Dedicated reading mode */
+.reading-launch{display:flex;justify-content:flex-end;margin:0 0 14px}
+.reader-overlay{display:none}
+.reader-overlay.is-open{display:flex;position:fixed;inset:0;z-index:10000;flex-direction:column;overflow-y:auto;padding:clamp(16px,4vw,48px);background:var(--paper);color:var(--ink)}
+.reader-overlay[data-theme="sepia"]{background:#eee6d5;color:#463e31}
+.reader-overlay[data-theme="night"]{background:#24231f;color:#e9e1d2}
+.reader-toolbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:14px;width:min(100%,900px);margin:0 auto 28px;padding:10px 0 14px;border-bottom:1px solid currentColor;background:inherit}
+.reader-kicker{font:10px 'Instrument Serif',serif;letter-spacing:.16em;opacity:.7}
+.reader-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.reader-control{border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;padding:6px 10px;font:12px 'Instrument Serif',serif;cursor:pointer}
+.reader-control:hover{background:rgba(120,110,90,.12)}
+.reader-content{width:var(--reader-width,700px);max-width:100%;margin:0 auto;font-size:var(--reader-size,20px);line-height:1.85}
+.reader-content.read{max-width:none;font-size:inherit;line-height:inherit;color:inherit}
+.reader-content.read p{margin:0 0 1.15em}
+.reader-content.read h2,.reader-content.read h3{color:inherit}
+.reader-content.read blockquote{border-color:currentColor;color:inherit;opacity:.78}
+.reader-content.read img{max-width:100%;height:auto}
+.reader-overlay.reader-wide .reader-content{--reader-width:900px}
+.reader-overlay[data-theme="night"] .reader-content.read img{filter:brightness(.92)}
+body.reading-mode-active{overflow:hidden}
+
+/* Distraction-free writing mode */
+.writer-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 10px;border-top:1px solid var(--line);color:var(--gray);font:11px 'Instrument Serif',serif;letter-spacing:.03em}
+.writer-count{font-variant-numeric:tabular-nums}
+.rich-tool.writer-toggle{margin-left:auto;white-space:nowrap}
+dialog.writing-mode-open{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:clamp(14px,3vw,38px)!important;border:0!important;border-radius:0!important;overflow-y:auto!important}
+dialog.writing-mode-open form{display:flex;flex-direction:column;min-height:100%;width:min(100%,980px);margin:0 auto}
+dialog.writing-mode-open form>label{display:none}
+dialog.writing-mode-open h2{margin-bottom:18px;font-size:32px}
+dialog.writing-mode-open .rich-field{display:flex;flex:1;flex-direction:column;margin:0}
+dialog.writing-mode-open .rich-field-label,dialog.writing-mode-open .rich-help{display:none}
+dialog.writing-mode-open .rich-editor{display:flex;flex:1;flex-direction:column;min-height:0;margin:0;border-radius:4px}
+dialog.writing-mode-open .rich-toolbar{position:sticky;top:0;z-index:2}
+dialog.writing-mode-open .rich-area{flex:1;min-height:58vh;max-height:none;padding:clamp(22px,4vw,52px) clamp(18px,9vw,110px);font-size:20px;line-height:1.9}
+dialog.writing-mode-open .writer-footer{position:sticky;bottom:0;background:#fff}
+dialog.writing-mode-open .btns{position:sticky;bottom:-38px;z-index:3;margin-top:12px;padding:12px 0;background:var(--paper)}
+@media(max-width:640px){
+  .reader-toolbar{align-items:flex-start;flex-direction:column;margin-bottom:18px}
+  .reader-actions{justify-content:flex-start}
+  .reader-content{font-size:19px}
+  dialog.writing-mode-open .rich-area{min-height:58vh;padding:22px 16px;font-size:18px}
+}
 .empty{color:var(--gray);padding:14px 4px}
 dialog{border:none;border-radius:16px;background:var(--paper);color:var(--ink);padding:24px;width:min(430px,92vw);font-family:inherit}
 dialog::backdrop{background:rgba(50,52,48,.5)}
@@ -246,8 +289,10 @@ function render(){
     const w=db.works.find(x=>x.id===id);
     let actions='';
     if(canManage(w))actions='<a data-act="editw">edit karya</a> · <a data-act="delw">hapus karya</a>';
+    const workContent=(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'');
+    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+workContent+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
-      '<div class="read">'+(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'')+'</div>','b/'+w.bid);
+      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
   }else{
     const coverCount=db.books.length,workCount=db.works.length;
     const welcome='<div class="showcase-slide welcome-slide is-active"><section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section></div>';
@@ -370,7 +415,8 @@ function ask(title,fields){
           '<button type="button" class="rich-tool" data-rich-command="insertUnorderedList" title="Daftar poin">• List</button>'+
           '<button type="button" class="rich-tool" data-rich-command="insertOrderedList" title="Daftar bernomor">1. List</button>'+
           '<button type="button" class="rich-tool" data-rich-command="removeFormat" title="Hapus format">Clear</button>'+
-          '</div><div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" data-rich-editor="'+f.k+'" data-placeholder="Mulai tulis karya di sini...">'+value+'</div><input class="rich-value" type="hidden" name="'+f.k+'" value="'+esc(value)+'"></div><small class="rich-help">Pilih teks, lalu gunakan toolbar untuk mengatur format dan perataan.</small>';
+          '<button type="button" class="rich-tool writer-toggle" data-writing-toggle>Writing Mode ↗</button>'+
+          '</div><div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" data-rich-editor="'+f.k+'" data-placeholder="Mulai tulis karya di sini...">'+value+'</div><input class="rich-value" type="hidden" name="'+f.k+'" value="'+esc(value)+'"><div class="writer-footer"><span data-writing-count class="writer-count">0 kata · 0 karakter</span><span>FOCUS WRITING</span></div></div><small class="rich-help">Pilih teks, lalu gunakan toolbar untuk mengatur format dan perataan.</small>';
       }else if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
       else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
       else if(f.t==='sel')input='<select name="'+f.k+'">'+f.o.map(o=>'<option '+(o===(f.v||f.o[0])?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
@@ -402,8 +448,16 @@ function ask(title,fields){
       const hidden=d.querySelector('input[name="'+editor.dataset.richEditor+'"]');
       if(hidden)hidden.value=sanitizeRichHTML(editor.innerHTML);
     };
+    const updateWritingCount=()=>{
+      if(!richEditor)return;
+      const plain=(richEditor.innerText||'').replace(/\\u00a0/g,' ').trim();
+      const words=plain?plain.split(/\\s+/).filter(Boolean).length:0;
+      const count=d.querySelector('[data-writing-count]');
+      if(count)count.textContent=words+' kata · '+plain.length+' karakter';
+    };
     if(richEditor){
-      richEditor.addEventListener('input',()=>syncRich(richEditor));
+      updateWritingCount();
+      richEditor.addEventListener('input',()=>{syncRich(richEditor);updateWritingCount();});
       richEditor.addEventListener('mouseup',captureRichSelection);
       richEditor.addEventListener('keyup',captureRichSelection);
       richEditor.addEventListener('touchend',captureRichSelection);
@@ -441,9 +495,19 @@ function ask(title,fields){
         if(!restored)richEditor.focus({preventScroll:true});
         document.execCommand(button.dataset.richCommand,false,null);
         syncRich(richEditor);
+        updateWritingCount();
         captureRichSelection();
       });
     });
+    const writingToggle=d.querySelector('[data-writing-toggle]');
+    if(writingToggle){
+      writingToggle.addEventListener('click',()=>{
+        const enabled=!d.classList.contains('writing-mode-open');
+        d.classList.toggle('writing-mode-open',enabled);
+        writingToggle.textContent=enabled?'Tutup Writing Mode':'Writing Mode ↗';
+        if(enabled)richEditor&&richEditor.focus({preventScroll:true});
+      });
+    }
     let settled=false;
     const finish=value=>{if(settled)return;settled=true;if(richEditor)document.removeEventListener('selectionchange',captureRichSelection);d.close();resolve(value);};
     $('#x').onclick=()=>finish(null);
@@ -674,6 +738,35 @@ async function performAction(act,id,t){
 }
 
 document.addEventListener('click',async e=>{
+  const readAction=e.target.closest('[data-reading-action]');
+  if(readAction){
+    const overlay=readAction.closest('[data-reader-overlay]')||document.querySelector('[data-reader-overlay]');
+    if(!overlay)return;
+    const action=readAction.dataset.readingAction;
+    if(action==='open'){
+      overlay.classList.add('is-open');
+      document.body.classList.add('reading-mode-active');
+      const closeButton=overlay.querySelector('[data-reading-action="close"]');
+      if(closeButton)closeButton.focus({preventScroll:true});
+    }else if(action==='close'){
+      overlay.classList.remove('is-open');
+      document.body.classList.remove('reading-mode-active');
+    }else if(action==='smaller'||action==='larger'){
+      const current=parseInt(getComputedStyle(overlay).getPropertyValue('--reader-size'),10)||20;
+      const next=Math.max(16,Math.min(30,current+(action==='larger'?2:-2)));
+      overlay.style.setProperty('--reader-size',next+'px');
+    }else if(action==='width'){
+      overlay.classList.toggle('reader-wide');
+      readAction.textContent=overlay.classList.contains('reader-wide')?'Lebar: Luas':'Lebar teks';
+    }else if(action==='theme'){
+      const themes=['paper','sepia','night'];
+      const labels={paper:'Tema: Kertas',sepia:'Tema: Sepia',night:'Tema: Malam'};
+      const next=themes[(themes.indexOf(overlay.dataset.theme)+1)%themes.length];
+      overlay.dataset.theme=next;
+      readAction.textContent=labels[next];
+    }
+    return;
+  }
   const g=e.target.closest('[data-go]');
   if(g){location.hash=g.dataset.go;return;}
   const a=e.target.closest('[data-act]');
@@ -682,6 +775,13 @@ document.addEventListener('click',async e=>{
   catch(error){console.error(error);alert(error.message||'Terjadi kesalahan.');}
 });
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    const overlay=document.querySelector('[data-reader-overlay].is-open');
+    if(overlay){
+      overlay.classList.remove('is-open');
+      document.body.classList.remove('reading-mode-active');
+    }
+  }
   if(e.key==='Enter'&&e.target.matches('[data-go],[data-act]'))e.target.click();
 });
 window.addEventListener('hashchange',render);
