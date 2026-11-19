@@ -991,9 +991,17 @@ function ask(title,fields,options={}){
           return;
         }
       }
+      if(workDraft&&out.kind==='Gambar'&&!(out.file&&out.file.size)&&!options.existingImage){
+        alert('Pilih foto sebelum memublikasikan karya gambar. Data teks draft tetap bisa disimpan.');
+        return;
+      }
       if(workDraft&&dirty){
         try{saveDraftFromForm();}
-        catch(error){setDraftStatus('Peringatan: draft tidak tersimpan. '+error.message,true);}
+        catch(error){
+          setDraftStatus('Draft tidak tersimpan. '+error.message,true);
+          alert('Autosave tidak berhasil. Coba simpan draft atau salin tulisanmu sebelum memublikasikan.');
+          return;
+        }
       }
       finish(out);
     };
