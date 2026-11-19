@@ -463,9 +463,9 @@ function render(){
         '<span class="contributor-name">'+esc(c.name)+'</span><span class="contributor-role">'+esc(c.role)+'</span>'+
         '<span class="contributor-count">'+count+' Published Work'+(count===1?'':'s')+'</span></button>';
     }).join('');
-    const add=isAdmin()?'<button type="button" class="contributor-add" data-act="add-member"><span>＋</span><span>Add Member</span></button>':'';
+    const add=isMember()?'<button type="button" class="contributor-add" data-act="add-member"><span>＋</span><span>'+(isAdmin()?'Add Member':'Add My Profile')+'</span></button>':'';
     const body='<header class="contributor-heading"><div><span class="section-kicker">THE PEOPLE BEHIND THE ART</span><h2>The Contributors</h2><p>Mengenal tangan-tangan yang merajut aksara dan rupa.</p></div><span class="collection-count">'+db.contributors.length+' CONTRIBUTORS</span></header>'+
-      (db.contributors.length||isAdmin()?'<div class="contributor-grid">'+cards+add+'</div>':'<p class="empty">Belum ada profil kontributor yang diterbitkan.</p>');
+      (db.contributors.length||isMember()?'<div class="contributor-grid">'+cards+add+'</div>':'<p class="empty">Belum ada profil kontributor yang diterbitkan.</p>');
     A.innerHTML=frame('The Contributors','Athenaeum Creative Community','',body,'');
   }else if(t==='member'&&db.contributors.find(c=>c.id===id)){
     const c=db.contributors.find(x=>x.id===id),works=worksByContributor(c);
@@ -833,10 +833,11 @@ async function performAction(act,id,t){
   if(act==='import-legacy'){await importLegacy();return;}
 
   if(act==='add-member'||act==='edit-member'){
-    if(!isAdmin())throw new Error('Hanya admin yang dapat mengelola profil member.');
+    if(act==='add-member'&&!isMember())throw new Error('Masuk sebagai kontributor atau admin untuk menambahkan profil.');
+    if(act==='edit-member'&&!isAdmin())throw new Error('Untuk keamanan akun kontributor bersama, hanya admin yang dapat mengedit profil.');
     const existing=act==='edit-member'?db.contributors.find(c=>c.id===id):null;
     if(act==='edit-member'&&!existing)throw new Error('Profil member tidak ditemukan.');
-    const values=await ask(existing?'Edit Profil Member':'Add Member',[
+    const values=await ask(existing?'Edit Profil Member':isAdmin()?'Add Member':'Tambah Profil Saya',[
       {k:'name',l:'Nama member / pen name',req:true,v:existing?existing.name:''},
       {k:'creative_role',l:'Peran',t:'sel',o:['Writer','Illustrator','Writer & Illustrator'],v:existing?existing.role:'Writer'},
       {k:'telegram_url',l:'Link Telegram (opsional, contoh: https://t.me/username atau @username)',v:existing?existing.telegram_url:''},
