@@ -24,7 +24,7 @@ a,[data-go],[data-act]{cursor:pointer}
 .project-tab.add:hover{background:#beb6a4}
 .folder{position:relative;background:var(--ivory);border-radius:0 26px 6px 6px;min-height:540px;padding:30px 36px 22px;display:flex;flex-direction:column;box-shadow:0 24px 50px rgba(40,42,38,.28)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:26px}
-h1{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:clamp(30px,6vw,44px);margin:0;line-height:1}
+h1{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:clamp(30px,6vw,44px);margin:0;line-height:1}.home-title{font-size:clamp(38px,7vw,58px)}
 h1 small{display:block;margin-top:4px;font-family:'Instrument Serif',serif;font-style:normal;font-size:11.5px;color:var(--gray);letter-spacing:.03em}
 .note{font-size:12.5px;color:var(--gray);text-align:right;letter-spacing:.04em}
 .note a{text-decoration:underline;text-underline-offset:3px}
@@ -151,7 +151,7 @@ function authNote(){
   if(isAdmin()&&legacyDb&&legacyDb.folders&&legacyDb.folders.length&&!db.folders.length)extra=' <a data-act="import-legacy">Impor arsip perangkat ini</a>';
   return '<div class="authline">'+label+' <a data-act="logout">Keluar</a>'+extra+'</div>';
 }
-const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder"><div class="top"><h1>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot"><a data-go="'+(back??'')+'" tabindex="0">'+(back===undefined?'arsip':'← kembali')+'</a><span>'+new Date().getFullYear()+'</span></div></div></div>';
+const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder"><div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot"><a data-go="'+(back??'')+'" tabindex="0">'+(back===undefined?'arsip':'← kembali')+'</a><span>'+new Date().getFullYear()+'</span></div></div></div>';
 
 function projectTabs(activeId){
   return '<nav class="project-tabs" aria-label="Navigasi project">'+db.folders.map(f=>'<button type="button" class="project-tab '+(f.id===activeId?'active':'')+'" data-go="f/'+esc(f.id)+'" '+(f.id===activeId?'aria-current="page"':'')+'>'+esc(f.name)+'</button>').join('')+(isAdmin()?'<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button>':'')+'</nav>';
@@ -192,7 +192,7 @@ function render(){
     const cards=!dataReady?'<div class="empty">Sedang memuat koleksi...</div>':db.folders.length?db.folders.map((f,i)=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"><span class="folder-index">COLLECTION '+String(i+1).padStart(2,'0')+'</span></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover dalam koleksi</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>';
     const add=isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:1.35;margin-top:12px">+</div><h3>Folder baru</h3><p>Tambahkan koleksi</p></div>':'';
     const colophon='<div class="home-colophon"><span>AN OPEN SHELF FOR CREATIVE WORK</span><span>WORDS · IMAGES · IDEAS</span></div>';
-    A.innerHTML=frame('Athenaeum','(karya penulis &amp; pelukis kami)','- explore the archive -',intro+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon);
+    A.innerHTML=frame('Athenaeum','', '- explore the archive -',intro+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon);
   }
 }
 
