@@ -107,7 +107,7 @@ const BUCKET='athenaeum-artworks';
 const MEMBER_EMAIL='contributors@athenaeum.invalid';
 const ADMIN_EMAIL='admin@athenaeum.invalid';
 let supabase=null;
-let session=null,profile=null,db={folders:[],books:[],works:[]},legacyDb=null,loadingError=null;
+let session=null,profile=null,db={folders:[],books:[],works:[]},legacyDb=null,loadingError=null,dataReady=false;
 const user=()=>session&&session.user?session.user:null;
 const isAdmin=()=>!!(profile&&profile.role==='admin'&&profile.status==='active');
 const isMember=()=>!!(profile&&profile.status==='active'&&(profile.role==='member'||profile.role==='admin'));
@@ -190,7 +190,7 @@ function render(){
     const coverCount=db.books.length,workCount=db.works.length;
     const intro='<section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section>';
     const heading='<div class="collection-heading"><div><span class="section-kicker">THE ARCHIVE</span><h2>The Collections</h2></div><div class="collection-count">'+db.folders.length+' PROJECTS&nbsp; · &nbsp;'+coverCount+' COVERS&nbsp; · &nbsp;'+workCount+' WORKS</div></div>';
-    const cards=db.folders.length?db.folders.map((f,i)=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"><span class="folder-index">COLLECTION '+String(i+1).padStart(2,'0')+'</span></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover dalam koleksi</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>';
+    const cards=!dataReady?'<div class="empty">Sedang memuat koleksi...</div>':db.folders.length?db.folders.map((f,i)=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"><span class="folder-index">COLLECTION '+String(i+1).padStart(2,'0')+'</span></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover dalam koleksi</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>';
     const add=isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:1.35;margin-top:12px">+</div><h3>Folder baru</h3><p>Tambahkan koleksi</p></div>':'';
     const colophon='<div class="home-colophon"><span>AN OPEN SHELF FOR CREATIVE WORK</span><span>WORDS · IMAGES · IDEAS</span></div>';
     A.innerHTML=frame('Athenaeum','(karya penulis &amp; pelukis kami)','- explore the archive -',intro+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon);
@@ -413,6 +413,7 @@ async function loadSupabaseSDK(){
     throw new Error('Pustaka koneksi gagal dimuat. Periksa koneksi internet lalu coba lagi.');
   }
 }
+render();
 (async function init(){
   try{
     await loadSupabaseSDK();
@@ -425,6 +426,7 @@ async function loadSupabaseSDK(){
     const result=await supabase.auth.getSession();
     await syncAuth(result.data.session);
     await refreshData();
+    dataReady=true;
     render();
     if(isAdmin()){
       readLegacyDB().then(value=>{
