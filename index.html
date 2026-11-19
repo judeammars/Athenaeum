@@ -991,8 +991,11 @@ async function performAction(act,id,t){
 document.addEventListener('click',async e=>{
   const collections=e.target.closest('[data-scroll-collections]');
   if(collections){
-    if(location.hash){location.hash='';render();}
-    requestAnimationFrame(()=>document.querySelector('#home-collections')?.scrollIntoView({behavior:'smooth',block:'start'}));
+    const scrollToCollections=()=>requestAnimationFrame(()=>document.querySelector('#home-collections')?.scrollIntoView({behavior:'smooth',block:'start'}));
+    if(location.hash){
+      window.addEventListener('hashchange',scrollToCollections,{once:true});
+      location.hash='';
+    }else scrollToCollections();
     return;
   }
   const readAction=e.target.closest('[data-reading-action]');
