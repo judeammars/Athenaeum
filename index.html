@@ -286,33 +286,35 @@ function mountHomeShowcase(){
     });
     if(current)current.textContent=String(active+1).padStart(2,'0');
   };
-  const schedule=(delay)=>{
+  // Slide sambutan tampil 5 detik; setiap slide karya tampil 8 detik.
+  const slideDelay=()=>active===0?5000:8000;
+  const schedule=(delay=slideDelay())=>{
     stopHomeShowcase();
     if(paused)return;
     homeShowcaseTimer=setTimeout(()=>{
       setSlide(active+1);
-      schedule(6000);
+      schedule();
     },delay);
   };
   root.querySelectorAll('[data-showcase-prev]').forEach(button=>button.addEventListener('click',()=>{
-    setSlide(active-1);schedule(6000);
+    setSlide(active-1);schedule();
   }));
   root.querySelectorAll('[data-showcase-next]').forEach(button=>button.addEventListener('click',()=>{
-    setSlide(active+1);schedule(6000);
+    setSlide(active+1);schedule();
   }));
   dots.forEach((dot,i)=>dot.addEventListener('click',()=>{
-    setSlide(i);schedule(6000);
+    setSlide(i);schedule();
   }));
   root.addEventListener('mouseenter',()=>{paused=true;stopHomeShowcase();});
-  root.addEventListener('mouseleave',()=>{paused=false;schedule(6000);});
+  root.addEventListener('mouseleave',()=>{paused=false;schedule();});
   root.addEventListener('focusin',()=>{paused=true;stopHomeShowcase();});
   root.addEventListener('focusout',event=>{
-    if(!root.contains(event.relatedTarget)){paused=false;schedule(6000);}
+    if(!root.contains(event.relatedTarget)){paused=false;schedule();}
   });
   root.addEventListener('touchstart',()=>{paused=true;stopHomeShowcase();},{passive:true});
-  root.addEventListener('touchend',()=>{paused=false;schedule(6000);},{passive:true});
+  root.addEventListener('touchend',()=>{paused=false;schedule();},{passive:true});
   setSlide(0);
-  schedule(1000);
+  schedule();
 }
 function validateCarouselUrl(value){
   let url;
