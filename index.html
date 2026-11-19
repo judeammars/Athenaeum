@@ -64,89 +64,320 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media(max-width:640px){.folder{padding:24px 18px 18px}.book{grid-template-columns:1fr}.book .card{max-width:190px}}
-</style>
+ .authline{margin-top:5px;font-size:12px;color:var(--gray)}.authline a{margin-left:7px}.authline a:first-child{margin-left:0} .note{max-width:310px} @media(max-width:640px){.note{max-width:55%;font-size:11px}}\n</style>
 </head>
 <body>
 <div id="app"></div>
 <dialog id="dlg"></dialog>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>
 const $=s=>document.querySelector(s);
-const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const tones=['#8c8a84','#6f7470','#a59f8f','#7d7f7a','#b0a99a','#5f6360'];
-const tone=s=>tones[[...s].reduce((a,c)=>a+c.charCodeAt(0),0)%tones.length];
-let db={folders:[],books:[],works:[]};
+const tone=s=>tones[[...String(s||'')].reduce((a,c)=>a+c.charCodeAt(0),0)%tones.length];
+const SB_URL='https://bsmapmixfpiwvoptpbxt.supabase.co';
+const SB_KEY='sb_publishable_a51cyBh8tj1kBOiVkgAyKQ_b6ItnHrx';
+const BUCKET='athenaeum-artworks';
+const MEMBER_EMAIL='contributors@athenaeum.invalid';
+const ADMIN_EMAIL='admin@athenaeum.invalid';
+const supabase=window.supabase.createClient(SB_URL,SB_KEY);
+let session=null,profile=null,db={folders:[],books:[],works:[]},legacyDb=null,loadingError=null;
+const user=()=>session&&session.user?session.user:null;
+const isAdmin=()=>!!(profile&&profile.role==='admin'&&profile.status==='active');
+const isMember=()=>!!(profile&&profile.status==='active'&&(profile.role==='member'||profile.role==='admin'));
+const canManage=row=>!!(isMember()&&(isAdmin()||(row&&row.created_by===user().id)));
 
-/* Penyimpanan: IndexedDB di browser (lihat catatan di pesan) */
-const idb=new Promise(r=>{try{const q=indexedDB.open('arsip-circle',1);q.onupgradeneeded=()=>q.result.createObjectStore('k');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
-async function load(){const d=await idb;if(!d)return;return new Promise(r=>{const g=d.transaction('k').objectStore('k').get('db');g.onsuccess=()=>{if(g.result)db=g.result;r()};g.onerror=()=>r()})}
-async function save(){const d=await idb;if(d)d.transaction('k','readwrite').objectStore('k').put(db,'db')}
-function seed(){
-  db.folders.push({id:'f1',name:'Folder 1',note:'karya-karya yang kami luangkan waktu untuknya. klik cover untuk membuka isinya.'});
-  db.books.push({id:'b1',fid:'f1',title:'Hujan di Kota Tua',owner:'Nara',year:'2025'},{id:'b2',fid:'f1',title:'Sketsa Senja',owner:'Ilya',year:'2025'});
-  db.works.push({id:'w1',bid:'b1',title:'Payung Merah',author:'Kael',kind:'Tulisan',text:'Hujan turun pelan di Kota Tua, dan lampu-lampu jalan menyala satu per satu seperti orang yang enggan pulang.\n\nIni contoh karya. Hapus atau tambahkan karyamu sendiri.'});
+function publicUrl(path){
+  if(!path)return null;
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
-const img=(f,m)=>new Promise(r=>{if(!f)return r(null);const i=new Image,u=URL.createObjectURL(f);i.onload=()=>{const s=Math.min(1,m/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL('image/jpeg',.84))};i.onerror=()=>r(null);i.src=u});
+function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.created_by};}
+function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
+function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,created_by:x.created_by};}
 
-/* Form dialog */
-function ask(title,fields){return new Promise(res=>{
-  const d=$('#dlg');
-  d.innerHTML=`<form><h2>${title}</h2>${fields.map(f=>`<label>${f.l}${f.t==='area'?`<textarea name="${f.k}" rows="8"></textarea>`:f.t==='file'?`<input type="file" name="${f.k}" accept="image/*">`:f.t==='sel'?`<select name="${f.k}">${f.o.map(o=>`<option>${o}</option>`).join('')}</select>`:`<input name="${f.k}" ${f.req?'required':''}>`}</label>`).join('')}<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>`;
-  d.showModal();
-  $('#x').onclick=()=>{d.close();res(null)};
-  d.onclose=()=>res(null);
-  d.querySelector('form').onsubmit=e=>{e.preventDefault();const o={};new FormData(e.target).forEach((v,k)=>o[k]=v);d.onclose=null;d.close();res(o)};
-})}
+async function refreshData(){
+  loadingError=null;
+  const results=await Promise.all([
+    supabase.from('folders').select('*').order('created_at',{ascending:true}),
+    supabase.from('books').select('*').order('created_at',{ascending:true}),
+    supabase.from('works').select('*').order('created_at',{ascending:true})
+  ]);
+  const failed=results.find(x=>x.error);
+  if(failed){loadingError=failed.error.message;throw failed.error;}
+  db={folders:(results[0].data||[]).map(mapFolder),books:(results[1].data||[]).map(mapBook),works:(results[2].data||[]).map(mapWork)};
+}
+async function syncAuth(s){
+  session=s||null;profile=null;
+  if(!session||!session.user)return;
+  const result=await supabase.from('profiles').select('role,status,display_name').eq('id',session.user.id).single();
+  if(result.error||!result.data||result.data.status!=='active'){
+    await supabase.auth.signOut();
+    session=null;profile=null;
+    throw new Error(result.error?result.error.message:'Akun belum diaktifkan. Hubungi administrator Athenaeum.');
+  }
+  profile=result.data;
+}
 
-/* Tampilan */
-const frame=(h,sub,note,body,back,tabs='')=>`<div class="stage ${tabs?'has-project-tabs':''}">${tabs}<div class="folder"><div class="top"><h1>${h}${sub?`<small>${sub}</small>`:''}</h1><div class="note">${note||''}</div></div>${body}<div class="foot"><a data-go="${back??''}" tabindex="0">${back===undefined?'arsip':'← kembali'}</a><span>✦ ♡ ✿</span><span>${new Date().getFullYear()}</span></div></div></div>`;
+function authNote(){
+  if(!isMember())return '<div class="authline"><a data-act="login">Masuk</a> untuk berkontribusi</div>';
+  let label=isAdmin()?'Administrator':'Contributor';
+  let extra='';
+  if(isAdmin()&&legacyDb&&legacyDb.folders&&legacyDb.folders.length&&!db.folders.length)extra=' <a data-act="import-legacy">Impor arsip perangkat ini</a>';
+  return '<div class="authline">'+label+' <a data-act="logout">Keluar</a>'+extra+'</div>';
+}
+const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder"><div class="top"><h1>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot"><a data-go="'+(back??'')+'" tabindex="0">'+(back===undefined?'arsip':'← kembali')+'</a><span>✦ ♡ ✿</span><span>'+new Date().getFullYear()+'</span></div></div></div>';
+
 function projectTabs(activeId){
-  return `<nav class="project-tabs" aria-label="Navigasi project">${db.folders.map(f=>`<button type="button" class="project-tab ${f.id===activeId?'active':''}" data-go="f/${esc(f.id)}" ${f.id===activeId?'aria-current="page"':''}>${esc(f.name)}</button>`).join('')}<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button></nav>`;
+  return '<nav class="project-tabs" aria-label="Navigasi project">'+db.folders.map(f=>'<button type="button" class="project-tab '+(f.id===activeId?'active':'')+'" data-go="f/'+esc(f.id)+'" '+(f.id===activeId?'aria-current="page"':'')+'>'+esc(f.name)+'</button>').join('')+(isAdmin()?'<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button>':'')+'</nav>';
 }
-const cover=b=>b.img?`<img src="${b.img}" alt="${esc(b.title)}">`:`<div class="gen" style="background:${tone(b.title)}">${esc(b.title)}</div>`;
+const cover=b=>b.img?'<img src="'+esc(b.img)+'" alt="'+esc(b.title)+'">':'<div class="gen" style="background:'+tone(b.title)+'">'+esc(b.title)+'</div>';
 
 function render(){
-  const [t,id]=location.hash.slice(1).split('/');
+  const parts=location.hash.slice(1).split('/'),t=parts[0],id=parts[1];
   const A=$('#app');window.scrollTo(0,0);
+  if(loadingError){
+    A.innerHTML=frame('Athenaeum','', 'Tidak dapat memuat arsip', '<p class="empty">Koneksi database belum berhasil: '+esc(loadingError)+'</p><button class="btn" data-act="retry">Coba lagi</button>');
+    return;
+  }
   if(t==='f'&&db.folders.find(x=>x.id===id)){
     const f=db.folders.find(x=>x.id===id),bs=db.books.filter(b=>b.fid===id);
-    A.innerHTML=frame('','',`<a data-act="delf">hapus folder</a>`,
-      `<div class="grid">${bs.map(b=>`<div class="card" data-go="b/${b.id}" tabindex="0"><div class="cover">${cover(b)}</div><h3>${esc(b.title)}</h3><p>${esc(b.owner)} (${esc(b.year)})</p></div>`).join('')}
-      <div class="card add" data-act="addb" tabindex="0"><div class="cover">+</div><h3>Cover baru</h3></div>${f.note?`<div class="memo">${esc(f.note)}</div>`:''}</div>`,'',projectTabs(id));
+    const note=(isAdmin()?'<a data-act="delf">hapus folder</a>':'');
+    A.innerHTML=frame('','',note,
+      '<div class="grid">'+bs.map(b=>'<div class="card" data-go="b/'+b.id+'" tabindex="0"><div class="cover">'+cover(b)+'</div><h3>'+esc(b.title)+'</h3><p>'+esc(b.owner)+' ('+esc(b.year)+')</p></div>').join('')+
+      (isMember()?'<div class="card add" data-act="addb" tabindex="0"><div class="cover">+</div><h3>Cover baru</h3></div>':'')+(f.note?'<div class="memo">'+esc(f.note)+'</div>':'')+'</div>','',projectTabs(id));
   }else if(t==='b'&&db.books.find(x=>x.id===id)){
     const b=db.books.find(x=>x.id===id),ws=db.works.filter(w=>w.bid===id);
-    A.innerHTML=frame('Isi cover','(karya di dalamnya)',`<a data-act="delb">hapus cover</a>`,
-      `<div class="book"><div class="card"><div class="cover">${cover(b)}</div></div><div><h2>${esc(b.title)}</h2><p class="card" style="margin:0"><p>oleh ${esc(b.owner)} (${esc(b.year)})</p></p>
-      <div class="works">${ws.length?ws.map(w=>`<div class="work" data-go="w/${w.id}" tabindex="0"><span>${esc(w.title)}</span><em>${esc(w.author)}, ${esc(w.kind.toLowerCase())}</em></div>`).join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>'}</div>
-      <button class="btn pri" data-act="addw">Tambah karya</button></div></div>`,'f/'+b.fid);
+    let actions='';
+    if(canManage(b))actions='<a data-act="editb">edit cover</a> · <a data-act="delb">hapus cover</a>';
+    A.innerHTML=frame('Isi cover','(karya di dalamnya)',actions,
+      '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh '+esc(b.owner)+' ('+esc(b.year)+')</p></p>'+
+      '<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
+      (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+'</div></div>','f/'+b.fid);
   }else if(t==='w'&&db.works.find(x=>x.id===id)){
     const w=db.works.find(x=>x.id===id);
-    A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),`<a data-act="delw">hapus karya</a>`,
-      `<div class="read">${w.img?`<img src="${w.img}" alt="${esc(w.title)}">`:''}${w.text?esc(w.text):''}</div>`,'b/'+w.bid);
+    let actions='';
+    if(canManage(w))actions='<a data-act="editw">edit karya</a> · <a data-act="delw">hapus karya</a>';
+    A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
+      '<div class="read">'+(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?esc(w.text):'')+'</div>','b/'+w.bid);
   }else{
     A.innerHTML=frame('Athenaeum','(karya penulis &amp; pelukis kami)','- pilih satu folder -',
-      `<div class="grid">${db.folders.map(f=>`<div class="card" data-go="f/${f.id}" tabindex="0"><div class="ftile"></div><h3>${esc(f.name)}</h3><p>${db.books.filter(b=>b.fid===f.id).length} cover</p></div>`).join('')}
-      <div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:4/3;margin-top:14px">+</div><h3>Folder baru</h3></div></div>`);
+      '<div class="grid">'+(db.folders.length?db.folders.map(f=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>')+
+      (isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:4/3;margin-top:14px">+</div><h3>Folder baru</h3></div>':'')+'</div>');
   }
 }
 
-/* Aksi */
+function ask(title,fields){
+  return new Promise(resolve=>{
+    const d=$('#dlg');
+    const controls=fields.map(f=>{
+      let input='';
+      if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
+      else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
+      else if(f.t==='sel')input='<select name="'+f.k+'">'+f.o.map(o=>'<option '+(o===(f.v||f.o[0])?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+      else input='<input name="'+f.k+'" type="'+(f.t==='password'?'password':'text')+'" '+(f.req?'required':'')+' value="'+esc(f.v||'')+'">';
+      return '<label>'+f.l+input+'</label>';
+    }).join('');
+    d.innerHTML='<form><h2>'+title+'</h2>'+controls+'<div class="btns"><button type="button" class="btn" id="x">Batal</button><button class="btn pri">Simpan</button></div></form>';
+    d.showModal();
+    let settled=false;
+    const finish=value=>{if(settled)return;settled=true;d.close();resolve(value);};
+    $('#x').onclick=()=>finish(null);
+    d.oncancel=e=>{e.preventDefault();finish(null);};
+    d.querySelector('form').onsubmit=e=>{e.preventDefault();const out={};new FormData(e.target).forEach((v,k)=>out[k]=v);finish(out);};
+  });
+}
+
+function imageBlob(file,maxSize){
+  return new Promise((resolve,reject)=>{
+    if(!file||!file.size)return resolve(null);
+    const url=URL.createObjectURL(file),image=new Image();
+    image.onload=()=>{
+      const scale=Math.min(1,maxSize/Math.max(image.width,image.height));
+      const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+      canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Gagal memproses gambar.')),'image/jpeg',.84);
+    };
+    image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('File gambar tidak dapat dibaca.'));};
+    image.src=url;
+  });
+}
+async function uploadImage(file,kind,maxSize){
+  if(!file||!file.size)return null;
+  if(!isMember())throw new Error('Silakan masuk terlebih dahulu.');
+  const blob=await imageBlob(file,maxSize||1600);
+  const id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
+  const path=user().id+'/'+kind+'/'+id+'.jpg';
+  const result=await supabase.storage.from(BUCKET).upload(path,blob,{cacheControl:'3600',upsert:false,contentType:'image/jpeg'});
+  if(result.error)throw result.error;
+  return path;
+}
+
+async function readLegacyDB(){
+  return new Promise(resolve=>{
+    try{
+      const request=indexedDB.open('arsip-circle',1);
+      request.onsuccess=()=>{
+        const legacy=request.result;
+        if(!legacy.objectStoreNames.contains('k')){legacy.close();return resolve(null);}
+        const get=legacy.transaction('k','readonly').objectStore('k').get('db');
+        get.onsuccess=()=>{const value=get.result||null;legacy.close();resolve(value);};
+        get.onerror=()=>{legacy.close();resolve(null);};
+      };
+      request.onerror=()=>resolve(null);
+    }catch(e){resolve(null);}
+  });
+}
+async function importLegacy(){
+  if(!isAdmin())throw new Error('Hanya admin yang dapat mengimpor arsip.');
+  if(!legacyDb||!legacyDb.folders||!legacyDb.folders.length)throw new Error('Tidak ada arsip lokal yang dapat diimpor.');
+  if(db.folders.length)throw new Error('Impor otomatis hanya ditawarkan saat arsip cloud masih kosong.');
+  if(!confirm('Impor '+legacyDb.folders.length+' folder dari penyimpanan browser ini ke Athenaeum? Data lokal tidak akan dihapus.'))return;
+  const folderMap={},bookMap={};
+  for(const f of legacyDb.folders){
+    const r=await supabase.from('folders').insert({name:f.name,note:f.note||'',created_by:user().id}).select().single();
+    if(r.error)throw r.error;folderMap[f.id]=r.data.id;
+  }
+  for(const b of (legacyDb.books||[])){
+    let path=null;
+    if(b.img&&String(b.img).startsWith('data:')){
+      const blob=await fetch(b.img).then(x=>x.blob());
+      const file=new File([blob],'legacy-cover.jpg',{type:blob.type||'image/jpeg'});
+      path=await uploadImage(file,'covers',900);
+    }
+    const r=await supabase.from('books').insert({folder_id:folderMap[b.fid],title:b.title,owner_name:b.owner||'',year:parseInt(b.year,10)||null,cover_path:path,created_by:user().id}).select().single();
+    if(r.error)throw r.error;bookMap[b.id]=r.data.id;
+  }
+  for(const w of (legacyDb.works||[])){
+    let path=null;
+    if(w.img&&String(w.img).startsWith('data:')){
+      const blob=await fetch(w.img).then(x=>x.blob());
+      const file=new File([blob],'legacy-work.jpg',{type:blob.type||'image/jpeg'});
+      path=await uploadImage(file,'works',1600);
+    }
+    const r=await supabase.from('works').insert({book_id:bookMap[w.bid],title:w.title,author_name:w.author||'',kind:w.kind||'Tulisan',text_content:w.text||'',image_path:path,created_by:user().id});
+    if(r.error)throw r.error;
+  }
+  await refreshData();render();alert('Arsip lokal berhasil diimpor. Salinan di browser tetap tersimpan.');
+}
+
+async function performAction(act,id,t){
+  if(act==='login'){
+    const v=await ask('Masuk ke Athenaeum',[{k:'role',l:'Jenis akses',t:'sel',o:['Kontributor','Admin']},{k:'password',l:'Kata sandi',t:'password',req:true}]);
+    if(!v)return;
+    const email=v.role==='Admin'?ADMIN_EMAIL:MEMBER_EMAIL;
+    const result=await supabase.auth.signInWithPassword({email,password:v.password});
+    if(result.error)throw result.error;
+    await syncAuth(result.data.session);
+    await refreshData();render();return;
+  }
+  if(act==='logout'){
+    const result=await supabase.auth.signOut();if(result.error)throw result.error;
+    session=null;profile=null;render();return;
+  }
+  if(act==='retry'){await refreshData();render();return;}
+  if(act==='import-legacy'){await importLegacy();return;}
+
+  if(act==='addf'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat membuat folder/project.');
+    const v=await ask('Project baru',[{k:'name',l:'Nama project',req:true},{k:'note',l:'Catatan singkat (opsional)',t:'area'}]);
+    if(!v)return;
+    const r=await supabase.from('folders').insert({name:v.name,note:v.note||'',created_by:user().id}).select().single();
+    if(r.error)throw r.error;
+    await refreshData();if(t==='f')location.hash='f/'+r.data.id;else render();return;
+  }
+  if(act==='addb'){
+    if(!isMember())throw new Error('Masuk sebagai kontributor untuk menambahkan cover.');
+    const v=await ask('Cover baru',[{k:'title',l:'Judul',req:true},{k:'owner',l:'Nama pemilik cover',req:true},{k:'year',l:'Tahun'},{k:'file',l:'Gambar cover',t:'file'}]);
+    if(!v)return;
+    const path=await uploadImage(v.file,'covers',900);
+    const year=parseInt(v.year,10)||null;
+    const r=await supabase.from('books').insert({folder_id:id,title:v.title,owner_name:v.owner,year:year,cover_path:path,created_by:user().id});
+    if(r.error){if(path)await supabase.storage.from(BUCKET).remove([path]);throw r.error;}
+    await refreshData();render();return;
+  }
+  if(act==='addw'){
+    if(!isMember())throw new Error('Masuk sebagai kontributor untuk menambahkan karya.');
+    const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:true},{k:'author',l:'Nama penulis / pelukis',req:true},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'area'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
+    if(!v)return;
+    if(v.kind==='Gambar'&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
+    const path=v.kind==='Gambar'?await uploadImage(v.file,'works',1600):null;
+    const r=await supabase.from('works').insert({book_id:id,title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?v.text||'':'',image_path:path,created_by:user().id});
+    if(r.error){if(path)await supabase.storage.from(BUCKET).remove([path]);throw r.error;}
+    await refreshData();render();return;
+  }
+  if(act==='editb'){
+    const b=db.books.find(x=>x.id===id);if(!canManage(b))throw new Error('Anda tidak memiliki izin mengubah cover ini.');
+    const v=await ask('Edit cover',[{k:'title',l:'Judul',req:true,v:b.title},{k:'owner',l:'Nama pemilik cover',req:true,v:b.owner},{k:'year',l:'Tahun',v:b.year},{k:'file',l:'Ganti gambar cover (opsional)',t:'file'}]);
+    if(!v)return;
+    const path=v.file&&v.file.size?await uploadImage(v.file,'covers',900):b.cover_path;
+    const r=await supabase.from('books').update({title:v.title,owner_name:v.owner,year:parseInt(v.year,10)||null,cover_path:path}).eq('id',id);
+    if(r.error)throw r.error;
+    await refreshData();render();return;
+  }
+  if(act==='editw'){
+    const w=db.works.find(x=>x.id===id);if(!canManage(w))throw new Error('Anda tidak memiliki izin mengubah karya ini.');
+    const v=await ask('Edit karya',[{k:'title',l:'Judul karya',req:true,v:w.title},{k:'author',l:'Nama penulis / pelukis',req:true,v:w.author},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:w.kind},{k:'text',l:'Isi tulisan',t:'area',v:w.text},{k:'file',l:'Ganti gambar (opsional)',t:'file'}]);
+    if(!v)return;
+    if(v.kind==='Gambar'&&!w.image_path&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
+    const path=v.kind==='Tulisan'?null:(v.file&&v.file.size?await uploadImage(v.file,'works',1600):w.image_path);
+    const r=await supabase.from('works').update({title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?v.text||'':'',image_path:path}).eq('id',id);
+    if(r.error)throw r.error;
+    await refreshData();render();return;
+  }
+
+  if(act==='delf'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat menghapus folder.');
+    if(!confirm('Hapus folder beserta semua cover dan karya di dalamnya?'))return;
+    const books=db.books.filter(b=>b.fid===id),bookIds=books.map(b=>b.id);
+    if(bookIds.length){const w=await supabase.from('works').delete().in('book_id',bookIds);if(w.error)throw w.error;}
+    const b=await supabase.from('books').delete().eq('folder_id',id);if(b.error)throw b.error;
+    const f=await supabase.from('folders').delete().eq('id',id);if(f.error)throw f.error;
+    await refreshData();location.hash='';render();return;
+  }
+  if(act==='delb'){
+    const b=db.books.find(x=>x.id===id);if(!canManage(b))throw new Error('Anda tidak memiliki izin menghapus cover ini.');
+    if(!confirm('Hapus cover beserta seluruh karyanya?'))return;
+    const w=await supabase.from('works').delete().eq('book_id',id);if(w.error)throw w.error;
+    const r=await supabase.from('books').delete().eq('id',id);if(r.error)throw r.error;
+    await refreshData();location.hash='f/'+b.fid;render();return;
+  }
+  if(act==='delw'){
+    const w=db.works.find(x=>x.id===id);if(!canManage(w))throw new Error('Anda tidak memiliki izin menghapus karya ini.');
+    if(!confirm('Hapus karya ini?'))return;
+    const r=await supabase.from('works').delete().eq('id',id);if(r.error)throw r.error;
+    await refreshData();location.hash='b/'+w.bid;render();return;
+  }
+}
+
 document.addEventListener('click',async e=>{
-  const g=e.target.closest('[data-go]');if(g){location.hash=g.dataset.go;return}
-  const a=e.target.closest('[data-act]');if(!a)return;
-  const [t,id]=location.hash.slice(1).split('/'),act=a.dataset.act;
-  if(act==='addf'){const v=await ask('Project baru',[{k:'name',l:'Nama project',req:1},{k:'note',l:'Catatan singkat (opsional)',t:'area'}]);if(v){const newFolder={id:uid(),name:v.name,note:v.note};db.folders.push(newFolder);if(t==='f')location.hash='f/'+newFolder.id}}
-  if(act==='addb'){const v=await ask('Cover baru',[{k:'title',l:'Judul',req:1},{k:'owner',l:'Nama pemilik cover',req:1},{k:'year',l:'Tahun'},{k:'file',l:'Gambar cover',t:'file'}]);if(v)db.books.push({id:uid(),fid:id,title:v.title,owner:v.owner,year:v.year||new Date().getFullYear(),img:await img(v.file,900)})}
-  if(act==='addw'){const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:1},{k:'author',l:'Nama penulis / pelukis',req:1},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'area'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
-    if(v)db.works.push({id:uid(),bid:id,title:v.title,author:v.author,kind:v.kind,text:v.kind==='Tulisan'?v.text:'',img:v.kind==='Gambar'?await img(v.file,1600):null})}
-  if(act==='delf'&&confirm('Hapus folder beserta semua isinya?')){const bs=db.books.filter(b=>b.fid===id).map(b=>b.id);db.works=db.works.filter(w=>!bs.includes(w.bid));db.books=db.books.filter(b=>b.fid!==id);db.folders=db.folders.filter(f=>f.id!==id);location.hash=''}
-  if(act==='delb'&&confirm('Hapus cover beserta karyanya?')){const b=db.books.find(x=>x.id===id);db.works=db.works.filter(w=>w.bid!==id);db.books=db.books.filter(x=>x.id!==id);location.hash='f/'+b.fid}
-  if(act==='delw'&&confirm('Hapus karya ini?')){const w=db.works.find(x=>x.id===id);db.works=db.works.filter(x=>x.id!==id);location.hash='b/'+w.bid}
-  await save();render();
+  const g=e.target.closest('[data-go]');
+  if(g){location.hash=g.dataset.go;return;}
+  const a=e.target.closest('[data-act]');
+  if(!a)return;
+  try{await performAction(a.dataset.act,location.hash.slice(1).split('/')[1],location.hash.slice(1).split('/')[0]);}
+  catch(error){console.error(error);alert(error.message||'Terjadi kesalahan.');}
 });
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('[data-go],[data-act]'))e.target.click()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.matches('[data-go],[data-act]'))e.target.click();
+});
 window.addEventListener('hashchange',render);
-load().then(()=>{if(!db.folders.length){seed();save()}render()});
+supabase.auth.onAuthStateChange((event,newSession)=>{
+  setTimeout(async()=>{
+    try{await syncAuth(newSession);await refreshData();render();}
+    catch(error){console.error(error);render();}
+  },0);
+});
+(async function init(){
+  try{
+    legacyDb=await readLegacyDB();
+    const result=await supabase.auth.getSession();
+    await syncAuth(result.data.session);
+    await refreshData();
+  }catch(error){
+    console.error(error);loadingError=error.message||'Gagal menghubungkan ke Supabase.';
+  }
+  render();
+})();
 </script>
 </body>
 </html>
