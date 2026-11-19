@@ -125,6 +125,7 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .work-slide-copy{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:24px 28px;max-width:min(760px,90%)}
 .work-slide-kicker,.work-slide-link{font:10px 'Instrument Serif',serif;letter-spacing:.16em;color:rgba(255,250,235,.78)}
 .work-slide-copy strong{font:italic clamp(25px,4vw,38px)/1.04 'Cormorant Garamond',serif;font-weight:600;color:#fffaf0}
+.work-slide-author{font:13px 'Instrument Serif',serif;letter-spacing:.035em;color:rgba(255,250,235,.9)}
 .work-slide-caption{font:italic clamp(14px,1.8vw,18px)/1.35 'Cormorant Garamond',serif;color:#fffaf0;white-space:pre-line}
 .work-slide-link{margin-top:7px;color:#fffaf0;text-decoration:underline;text-underline-offset:3px}
 .showcase-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:9px 2px 0;color:var(--gray)}
@@ -179,7 +180,7 @@ function publicUrl(path){
 function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.created_by};}
 function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'Athenaeum',cover_artist:x.cover_artist||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
 function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,created_by:x.created_by};}
-function mapCarousel(x){return {id:x.id,title:x.title,caption:x.caption||'',image_path:x.image_path,img:publicUrl(x.image_path),target_url:x.target_url,created_by:x.created_by,created_at:x.created_at};}
+function mapCarousel(x){return {id:x.id,title:x.title,author_name:x.author_name||'',caption:x.caption||'',image_path:x.image_path,img:publicUrl(x.image_path),target_url:x.target_url,created_by:x.created_by,created_at:x.created_at};}
 
 async function refreshData(){
   loadingError=null;
@@ -250,7 +251,7 @@ function render(){
   }else{
     const coverCount=db.books.length,workCount=db.works.length;
     const welcome='<div class="showcase-slide welcome-slide is-active"><section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section></div>';
-    const workSlides=(db.carousel||[]).map((slide,i)=>'<a class="showcase-slide work-slide" href="'+esc(slide.target_url)+'" target="_blank" rel="noopener noreferrer" aria-label="Buka karya '+esc(slide.title)+' di tautan aslinya"><img class="work-slide-image" src="'+esc(slide.img)+'" alt="'+esc(slide.title)+'"><span class="work-slide-shade"></span><span class="work-slide-copy"><span class="work-slide-kicker">FROM THE ATHENAEUM COMMUNITY</span><strong>'+esc(slide.title)+'</strong>'+(slide.caption?'<span class="work-slide-caption">'+esc(slide.caption)+'</span>':'')+'<span class="work-slide-link">VIEW ORIGINAL POST ↗</span></span></a>').join('');
+    const workSlides=(db.carousel||[]).map((slide,i)=>'<a class="showcase-slide work-slide" href="'+esc(slide.target_url)+'" target="_blank" rel="noopener noreferrer" aria-label="Buka karya '+esc(slide.title)+' di tautan aslinya"><img class="work-slide-image" src="'+esc(slide.img)+'" alt="'+esc(slide.title)+'"><span class="work-slide-shade"></span><span class="work-slide-copy"><span class="work-slide-kicker">FROM THE ATHENAEUM COMMUNITY</span><strong>'+esc(slide.title)+'</strong>'+(slide.author_name?'<span class="work-slide-author">oleh '+esc(slide.author_name)+'</span>':'')+(slide.caption?'<span class="work-slide-caption">'+esc(slide.caption)+'</span>':'')+'<span class="work-slide-link">VIEW ORIGINAL POST ↗</span></span></a>').join('');
     const showcaseCount=(db.carousel||[]).length+1;
     const showcaseControls=showcaseCount>1?'<div class="showcase-controls"><span class="showcase-count"><span data-showcase-current>01</span> / '+String(showcaseCount).padStart(2,'0')+'</span><div class="showcase-dots">'+Array.from({length:showcaseCount},(_,i)=>'<button type="button" class="showcase-dot '+(i===0?'active':'')+'" data-showcase-dot="'+i+'" aria-label="Slide '+(i+1)+'" '+(i===0?'aria-current="true"':'')+'></button>').join('')+'</div><div class="showcase-arrows"><button type="button" data-showcase-prev aria-label="Slide sebelumnya">‹</button><button type="button" data-showcase-next aria-label="Slide berikutnya">›</button></div></div>':'';
     const showcase='<section class="home-showcase" data-home-showcase><div class="showcase-track">'+welcome+workSlides+'</div>'+showcaseControls+'</section>';
@@ -549,6 +550,7 @@ async function performAction(act,id,t){
     const v=await ask('Tambah Carousel',[
       {k:'file',l:'Foto karya',t:'file',req:true},
       {k:'title',l:'Judul karya',req:true},
+      {k:'author_name',l:'Nama penulis',req:true},
       {k:'caption',l:'Caption (opsional)',t:'area'},
       {k:'target_url',l:'Link postingan asli (HTTPS)',t:'url',req:true}
     ]);
@@ -557,7 +559,7 @@ async function performAction(act,id,t){
     const targetUrl=validateCarouselUrl(v.target_url);
     const path=await uploadImage(v.file,'carousel',1800);
     const result=await supabase.from('carousel_slides').insert({
-      title:v.title.trim(),caption:v.caption||'',image_path:path,target_url:targetUrl,created_by:user().id
+      title:v.title.trim(),author_name:v.author_name.trim(),caption:v.caption||'',image_path:path,target_url:targetUrl,created_by:user().id
     }).select().single();
     if(result.error){await supabase.storage.from(BUCKET).remove([path]);throw result.error;}
     await refreshData();render();return;
@@ -568,6 +570,7 @@ async function performAction(act,id,t){
     if(!slide)throw new Error('Slide carousel tidak ditemukan.');
     const v=await ask('Edit Carousel',[
       {k:'title',l:'Judul karya',req:true,v:slide.title},
+      {k:'author_name',l:'Nama penulis',req:true,v:slide.author_name},
       {k:'caption',l:'Caption (opsional)',t:'area',v:slide.caption},
       {k:'target_url',l:'Link postingan asli (HTTPS)',t:'url',req:true,v:slide.target_url},
       {k:'file',l:'Ganti foto (opsional)',t:'file'}
@@ -576,7 +579,7 @@ async function performAction(act,id,t){
     const targetUrl=validateCarouselUrl(v.target_url);
     const newPath=v.file&&v.file.size?await uploadImage(v.file,'carousel',1800):slide.image_path;
     const result=await supabase.from('carousel_slides').update({
-      title:v.title.trim(),caption:v.caption||'',target_url:targetUrl,image_path:newPath
+      title:v.title.trim(),author_name:v.author_name.trim(),caption:v.caption||'',target_url:targetUrl,image_path:newPath
     }).eq('id',id);
     if(result.error){
       if(newPath!==slide.image_path)await supabase.storage.from(BUCKET).remove([newPath]);
