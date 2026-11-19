@@ -68,9 +68,8 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><div class="stage"><div class="folder"><div class="top"><h1>Athenaeum<small>sedang membuka arsip...</small></h1></div><p class="empty">Menghubungkan ke perpustakaan digital.</p></div></div></div>
 <dialog id="dlg"></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -81,13 +80,7 @@ const SB_KEY='sb_publishable_a51cyBh8tj1kBOiVkgAyKQ_b6ItnHrx';
 const BUCKET='athenaeum-artworks';
 const MEMBER_EMAIL='contributors@athenaeum.invalid';
 const ADMIN_EMAIL='admin@athenaeum.invalid';
-const createSupabaseClient=window.supabase&&window.supabase.createClient;
-if(typeof createSupabaseClient!=='function'){
-  const app=document.querySelector('#app');
-  if(app)app.innerHTML='<div style="max-width:680px;margin:12vh auto;padding:28px;background:#f2ecdd;border-radius:18px;color:#3a3935;font:18px Georgia,serif"><h1 style="font-style:italic">Athenaeum</h1><p>Pustaka koneksi belum berhasil dimuat. Periksa koneksi internet, lalu muat ulang halaman.</p></div>';
-  throw new Error('Supabase JS CDN gagal dimuat.');
-}
-const supabase=createSupabaseClient(SB_URL,SB_KEY);
+let supabase=null;
 let session=null,profile=null,db={folders:[],books:[],works:[]},legacyDb=null,loadingError=null;
 const user=()=>session&&session.user?session.user:null;
 const isAdmin=()=>!!(profile&&profile.role==='admin'&&profile.status==='active');
@@ -369,22 +362,63 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.matches('[data-go],[data-act]'))e.target.click();
 });
 window.addEventListener('hashchange',render);
-supabase.auth.onAuthStateChange((event,newSession)=>{
-  setTimeout(async()=>{
-    try{await syncAuth(newSession);await refreshData();render();}
-    catch(error){console.error(error);render();}
-  },0);
-});
+function showBootError(message){
+  const app=$('#app');
+  if(!app)return;
+  app.innerHTML='<div class="stage"><div class="folder"><div class="top"><h1>Athenaeum<small>arsip belum dapat dibuka</small></h1></div><p class="empty">'+esc(message||'Koneksi belum berhasil.')+'</p><button class="btn pri" type="button" onclick="location.reload()">Muat ulang</button></div></div>';
+}
+function loadSupabaseSDK(){
+  if(window.supabase&&typeof window.supabase.createClient==='function')return Promise.resolve();
+  const sources=[
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+    'https://unpkg.com/@supabase/supabase-js@2'
+  ];
+  return new Promise((resolve,reject)=>{
+    let index=0,lastError=null;
+    const attempt=()=>{
+      if(window.supabase&&typeof window.supabase.createClient==='function'){resolve();return;}
+      if(index>=sources.length){reject(lastError||new Error('Pustaka Supabase tidak dapat dimuat.'));return;}
+      const src=sources[index++],script=document.createElement('script');
+      let settled=false;
+      const timer=setTimeout(()=>{
+        if(settled)return;settled=true;script.remove();
+        lastError=new Error('Waktu pemuatan pustaka koneksi habis.');attempt();
+      },12000);
+      script.src=src;script.async=true;script.crossOrigin='anonymous';
+      script.onload=()=>{
+        if(settled)return;settled=true;clearTimeout(timer);
+        if(window.supabase&&typeof window.supabase.createClient==='function')resolve();
+        else{lastError=new Error('Pustaka termuat, tetapi fungsi koneksinya tidak tersedia.');attempt();}
+      };
+      script.onerror=()=>{
+        if(settled)return;settled=true;clearTimeout(timer);script.remove();
+        lastError=new Error('CDN gagal dimuat: '+src);attempt();
+      };
+      document.head.appendChild(script);
+    };
+    attempt();
+  });
+}
 (async function init(){
   try{
+    await loadSupabaseSDK();
+    supabase=window.supabase.createClient(SB_URL,SB_KEY);
+    supabase.auth.onAuthStateChange((event,newSession)=>{
+      setTimeout(async()=>{
+        try{await syncAuth(newSession);await refreshData();render();}
+        catch(error){console.error(error);render();}
+      },0);
+    });
     legacyDb=await readLegacyDB();
     const result=await supabase.auth.getSession();
     await syncAuth(result.data.session);
     await refreshData();
+    render();
   }catch(error){
-    console.error(error);loadingError=error.message||'Gagal menghubungkan ke Supabase.';
+    console.error(error);
+    loadingError=error.message||'Gagal menghubungkan ke Supabase.';
+    showBootError(loadingError);
   }
-  render();
 })();
 </script>
 </body>
