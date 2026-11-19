@@ -44,10 +44,10 @@ h1 small{display:block;margin-top:4px;font-family:'Instrument Serif',serif;font-
 background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px);background-position:0 14px}
 .memo::before{content:"";position:absolute;top:-6px;left:50%;width:14px;height:14px;border-radius:50%;background:#8c8a84;box-shadow:0 2px 3px rgba(0,0,0,.3)}
 .backbar{display:flex;align-items:center;margin:0 0 18px}
-.back-link{display:inline-flex;align-items:center;padding:9px 13px;background:#f0df00;color:#49463b;text-decoration:none;font:14px 'Instrument Serif',serif;transition:background .18s,transform .18s}
-.back-link:hover{background:#dfcf00;transform:translateX(-2px)}
-.foot{display:flex;justify-content:flex-end;align-items:center;margin-top:30px;font-size:14px}
-.foot span{color:var(--gray);letter-spacing:.3em}
+.back-link,.archive-link{display:inline-flex;align-items:center;padding:0;background:transparent;color:var(--gray);text-decoration:none;font:14px 'Instrument Serif',serif;transition:color .18s}
+.back-link:hover,.archive-link:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:30px;font-size:14px}
+.foot span{margin-left:auto;color:var(--gray);letter-spacing:.3em}
 .book{display:grid;grid-template-columns:210px 1fr;gap:34px;flex:1}
 .book h2{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:30px;margin:0 0 2px}
 .works{margin:22px 0 14px;border-top:1px solid var(--line)}
@@ -154,7 +154,7 @@ function authNote(){
   if(isAdmin()&&legacyDb&&legacyDb.folders&&legacyDb.folders.length&&!db.folders.length)extra=' <a data-act="import-legacy">Impor arsip perangkat ini</a>';
   return '<div class="authline">'+label+' <a data-act="logout">Keluar</a>'+extra+'</div>';
 }
-const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder"><div class="backbar"><a class="back-link" data-go="'+(back??'')+'" tabindex="0">'+(back===undefined?'arsip':'← kembali')+'</a></div><div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot"><span>'+new Date().getFullYear()+'</span></div></div></div>';
+const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
 
 function projectTabs(activeId){
   return '<nav class="project-tabs" aria-label="Navigasi project">'+db.folders.map(f=>'<button type="button" class="project-tab '+(f.id===activeId?'active':'')+'" data-go="f/'+esc(f.id)+'" '+(f.id===activeId?'aria-current="page"':'')+'>'+esc(f.name)+'</button>').join('')+(isAdmin()?'<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button>':'')+'</nav>';
