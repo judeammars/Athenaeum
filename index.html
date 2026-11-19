@@ -218,6 +218,13 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .reader-content .soundtrack-card{max-width:100%;background:rgba(120,110,95,.09);border-color:currentColor;color:inherit}
 .reader-overlay[data-theme="night"] .soundtrack-heading{color:#c4b6a0}
 @media(max-width:640px){.music-fields{padding:11px}.soundtrack-card{padding:13px}}
+/* Direct embedded music player, without redundant controls */
+.work-music-embed{width:min(100%,480px);max-width:100%;margin:10px auto 28px}
+.work-music-embed iframe{display:block;width:100%;max-width:100%;border:0;border-radius:12px;background:transparent}
+.work-music-embed.music-youtube{width:min(100%,480px)}
+.work-music-embed.music-youtube iframe{aspect-ratio:16/9;height:auto;min-height:190px}
+.reader-content .work-music-embed{width:min(100%,480px);margin:4px auto 32px}
+@media(max-width:540px){.work-music-embed{width:100%;margin:8px auto 24px}}
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -281,30 +288,29 @@ function musicEmbedInfo(value){
   return null;
 }
 function normalizedWorkMusic(v){
-  const url=String(v.music_url||'').trim(),title=String(v.music_title||'').trim(),artist=String(v.music_artist||'').trim();
-  if(!url&&!title&&!artist)return {music_url:null,music_title:null,music_artist:null};
+  const url=String(v.music_url||'').trim();
+  if(!url)return {music_url:null,music_title:null,music_artist:null};
   const info=musicEmbedInfo(url);
   if(!info)throw new Error('Gunakan link lagu Spotify atau YouTube yang valid.');
-  if(!title||!artist)throw new Error('Isi judul lagu dan nama penyanyinya.');
-  if(title.length>160||artist.length>160)throw new Error('Judul lagu dan nama penyanyi maksimal 160 karakter.');
-  return {music_url:info.link,music_title:title,music_artist:artist};
+  return {music_url:info.link,music_title:null,music_artist:null};
 }
-function workSoundtrack(w){
+function workSoundtrack(w,forReader=false){
   const info=musicEmbedInfo(w.music_url);
   if(!info)return '';
-  return '<section class="soundtrack-card" data-music-card data-music-link="'+esc(info.link)+'" aria-label="Lagu pendamping karya">'+
-    '<div class="soundtrack-heading">♫ THE SOUNDTRACK OF THIS WORK</div>'+
-    '<div class="soundtrack-title">'+esc(w.music_title||'Lagu pendamping')+'</div>'+
-    (w.music_artist?'<p class="soundtrack-artist">'+esc(w.music_artist)+'</p>':'')+
-    '<div class="soundtrack-actions"><button type="button" class="soundtrack-play" data-music-play aria-expanded="false">▶ Tampilkan pemutar</button>'+
-    '<a class="soundtrack-link" href="'+esc(info.link)+'" target="_blank" rel="noopener noreferrer">Buka di '+info.platform+' ↗</a></div>'+
-    '<div class="soundtrack-player" data-music-player></div></section>';
+  const height=info.platform==='Spotify'?'152':'270';
+  const src=forReader?'':' src="'+esc(info.embed)+'"';
+  return '<div class="work-music-embed '+(info.platform==='YouTube'?'music-youtube':'music-spotify')+'" aria-label="Lagu pendamping karya">'+
+    '<iframe data-music-iframe data-music-src="'+esc(info.embed)+'"'+src+
+    ' loading="lazy" title="Pemutar '+info.platform+' untuk lagu pendamping karya" height="'+height+
+    '" allow="encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
 }
-function stopWorkMusic(){
-  document.querySelectorAll('[data-music-card]').forEach(card=>{
-    const mount=card.querySelector('[data-music-player]');if(mount)mount.replaceChildren();
-    const button=card.querySelector('[data-music-play]');
-    if(button){button.textContent='▶ Tampilkan pemutar';button.setAttribute('aria-expanded','false');}
+function setReadingSoundtrack(inReader){
+  document.querySelectorAll('[data-music-iframe]').forEach(iframe=>{
+    const isReader=!!iframe.closest('[data-reader-overlay]');
+    const desired=isReader===inReader;
+    const target=iframe.getAttribute('data-music-src');
+    if(desired&&target&&iframe.getAttribute('src')!==target)iframe.setAttribute('src',target);
+    else if(!desired&&iframe.hasAttribute('src'))iframe.removeAttribute('src');
   });
 }
 
@@ -376,7 +382,8 @@ function render(){
     if(canManage(w))actions='<a data-act="editw">edit karya</a> · <a data-act="delw">hapus karya</a>';
     const workContent=(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'');
     const soundtrack=workSoundtrack(w);
-    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+soundtrack+workContent+'</article></section>':'';
+    const readerSoundtrack=workSoundtrack(w,true);
+    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
       (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
   }else{
@@ -505,10 +512,8 @@ function ask(title,fields){
           '<button type="button" class="rich-tool writer-toggle" data-writing-toggle>Writing Mode ↗</button>'+
           '</div><div class="music-fields" data-music-fields '+(f.music_url?'':'hidden')+'>'+
           '<div class="music-fields-heading">The Soundtrack of This Work</div>'+
-          '<div class="music-fields-help">Link Spotify atau YouTube resmi. Lagu tidak menyala otomatis.</div>'+
+          '<div class="music-fields-help">Tempel link lagu Spotify atau YouTube. Judul, artis, dan cover akan tampil otomatis dari pemutar resmi.</div>'+
           '<label>Link lagu<input type="url" name="music_url" placeholder="https://open.spotify.com/track/..." value="'+esc(f.music_url||'')+'"></label>'+
-          '<label>Judul lagu<input name="music_title" maxlength="160" placeholder="Judul lagu" value="'+esc(f.music_title||'')+'"></label>'+
-          '<label>Nama penyanyi<input name="music_artist" maxlength="160" placeholder="Nama penyanyi" value="'+esc(f.music_artist||'')+'"></label>'+
           '<button type="button" class="music-fields-remove" data-music-remove>Hapus lagu dari karya</button></div><div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" data-rich-editor="'+f.k+'" data-placeholder="Mulai tulis karya di sini...">'+value+'</div><input class="rich-value" type="hidden" name="'+f.k+'" value="'+esc(value)+'"><div class="writer-footer"><span data-writing-count class="writer-count">0 kata · 0 karakter</span><span>FOCUS WRITING</span></div></div><small class="rich-help">Pilih teks, lalu gunakan toolbar untuk mengatur format dan perataan.</small>';
       }else if(f.t==='area')input='<textarea name="'+f.k+'" rows="8">'+esc(f.v||'')+'</textarea>';
       else if(f.t==='file')input='<input type="file" name="'+f.k+'" accept="image/*">';
@@ -864,40 +869,19 @@ async function performAction(act,id,t){
 }
 
 document.addEventListener('click',async e=>{
-  const play=e.target.closest('[data-music-play]');
-  if(play){
-    const card=play.closest('[data-music-card]');
-    const mount=card&&card.querySelector('[data-music-player]');
-    const info=card&&musicEmbedInfo(card.dataset.musicLink);
-    if(!mount||!info)return;
-    if(mount.childNodes.length){stopWorkMusic();return;}
-    stopWorkMusic();
-    const iframe=document.createElement('iframe');
-    iframe.src=info.embed;
-    iframe.title='Pemutar '+info.platform+' untuk lagu pendamping karya';
-    iframe.loading='lazy';
-    iframe.referrerPolicy='strict-origin-when-cross-origin';
-    iframe.allow='encrypted-media; fullscreen; picture-in-picture';
-    iframe.allowFullscreen=true;
-    iframe.height=info.platform==='Spotify'?'152':'230';
-    mount.appendChild(iframe);
-    play.textContent='✕ Tutup pemutar';
-    play.setAttribute('aria-expanded','true');
-    return;
-  }
   const readAction=e.target.closest('[data-reading-action]');
   if(readAction){
     const overlay=readAction.closest('[data-reader-overlay]')||document.querySelector('[data-reader-overlay]');
     if(!overlay)return;
     const action=readAction.dataset.readingAction;
     if(action==='open'){
-      stopWorkMusic();
       overlay.classList.add('is-open');
+      setReadingSoundtrack(true);
       document.body.classList.add('reading-mode-active');
       const closeButton=overlay.querySelector('[data-reading-action="close"]');
       if(closeButton)closeButton.focus({preventScroll:true});
     }else if(action==='close'){
-      stopWorkMusic();
+      setReadingSoundtrack(false);
       overlay.classList.remove('is-open');
       document.body.classList.remove('reading-mode-active');
     }else if(action==='smaller'||action==='larger'){
@@ -927,7 +911,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     const overlay=document.querySelector('[data-reader-overlay].is-open');
     if(overlay){
-      stopWorkMusic();
+      setReadingSoundtrack(false);
       overlay.classList.remove('is-open');
       document.body.classList.remove('reading-mode-active');
     }
