@@ -625,7 +625,21 @@ function ask(title,fields){
     d.querySelector('form').onsubmit=e=>{
       e.preventDefault();
       d.querySelectorAll('[data-rich-editor]').forEach(syncRich);
-      const out={};new FormData(e.target).forEach((v,k)=>out[k]=v);finish(out);
+      const out={};new FormData(e.target).forEach((v,k)=>out[k]=v);
+      // Keep the editor and all typed work open when a music link is invalid.
+      if(d.querySelector('[data-music-fields]')){
+        try{normalizedWorkMusic(out);}catch(error){
+          alert(error.message);
+          const field=d.querySelector('[name="music_url"]');
+          const pane=d.querySelector('[data-music-fields]');
+          if(pane)pane.removeAttribute('hidden');
+          const toggle=d.querySelector('[data-music-toggle]');
+          if(toggle)toggle.setAttribute('aria-expanded','true');
+          if(field)field.focus({preventScroll:true});
+          return;
+        }
+      }
+      finish(out);
     };
   });
 }
