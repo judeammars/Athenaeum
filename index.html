@@ -319,6 +319,46 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
   .cover-hover-card:hover .cover,
   .cover-hover-card:focus-visible .cover{transform:none}
 }
+
+/* Leave an Echo · a small reaction ritual following each published work. */
+.echo-panel{width:min(100%,670px);margin:44px auto 26px;padding:24px 0 0;border-top:1px solid rgba(130,118,97,.30);color:inherit;font:14px/1.35 'Instrument Serif',serif;text-align:center;letter-spacing:normal}
+.echo-heading{margin:0 auto 22px}
+.echo-kicker{display:block;color:#8b8271;font:10px/1.4 'Instrument Serif',serif;letter-spacing:.17em}
+.echo-panel .echo-heading h2{font:italic 34px/1.12 'Cormorant Garamond',serif;font-weight:500;margin:6px 0 6px;color:inherit}
+.echo-panel .echo-heading p{font:italic 15px/1.45 'Cormorant Garamond',serif;color:#8b8271;margin:0}
+.echo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.echo-choice{appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:136px;padding:13px 7px 11px;border:1px solid rgba(132,120,97,.32);border-radius:6px;background:rgba(249,247,240,.68);color:#514b40;font:inherit;text-align:center;cursor:pointer;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease,background-color .22s ease}
+.echo-choice:disabled{cursor:wait}
+.echo-choice:hover:not(:disabled),.echo-choice:focus-visible{transform:translateY(-3px);border-color:#887a62;box-shadow:0 9px 19px rgba(52,43,31,.11)}
+.echo-choice.is-selected{background:rgba(229,221,203,.68);border-color:#94866e;box-shadow:inset 0 0 0 1px rgba(148,134,110,.14)}
+.echo-icon{display:grid;place-items:center;width:36px;height:36px;margin-bottom:3px;font-size:24px;line-height:1}
+.echo-name{font:500 18px/1.1 'Cormorant Garamond',serif;white-space:nowrap}
+.echo-meaning{min-height:29px;color:#80786b;font:11px/1.25 'Instrument Serif',serif}
+.echo-count{display:block;margin-top:4px;color:#686053;font:12px/1.15 'Instrument Serif',serif;font-variant-numeric:tabular-nums}
+.echo-panel .echo-feedback{min-height:16px;margin:15px 0 0;color:#8b8271;font:12px/1.35 'Instrument Serif',serif;text-align:center}
+.echo-celebrate .echo-icon{animation:echo-lift .46s cubic-bezier(.2,.7,.2,1)}
+@keyframes echo-lift{0%{transform:translateY(0) scale(.9);opacity:.8}45%{transform:translateY(-7px) scale(1.25);opacity:1}100%{transform:translateY(0) scale(1)}}
+.reader-overlay .echo-panel{border-color:currentColor;color:inherit}
+.reader-overlay .echo-kicker,.reader-overlay .echo-panel .echo-heading p,.reader-overlay .echo-panel .echo-feedback{color:inherit;opacity:.7}
+.reader-overlay[data-theme="paper"] .echo-choice{background:rgba(249,247,240,.8);color:#514b40}
+.reader-overlay[data-theme="sepia"] .echo-choice{background:rgba(239,229,207,.52);color:#504638}
+.reader-overlay[data-theme="night"] .echo-choice{background:rgba(255,255,255,.04);border-color:rgba(236,226,205,.28);color:#e9e1d2}
+.reader-overlay[data-theme="night"] .echo-choice.is-selected{background:rgba(213,195,157,.17);border-color:rgba(236,226,205,.68)}
+.reader-overlay[data-theme="night"] .echo-count,.reader-overlay[data-theme="night"] .echo-meaning{color:#d1c3a8}
+.reader-overlay .echo-panel .echo-heading h2{font-size:34px;margin:6px 0}
+.reader-overlay .echo-panel .echo-heading p{margin:0}
+@media(max-width:640px){
+  .echo-panel{margin:36px auto 20px;padding-top:19px}
+  .echo-panel .echo-heading h2{font-size:30px}
+  .echo-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .echo-choice{min-height:130px;padding:11px 7px}
+}
+@media(prefers-reduced-motion:reduce){
+  .echo-choice{transition:none}
+  .echo-choice:hover:not(:disabled),.echo-choice:focus-visible{transform:none}
+  .echo-celebrate .echo-icon{animation:none}
+}
+
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -328,6 +368,7 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 <body>
 <div id="app"><div class="stage"><div class="folder"><div class="top"><h1>Athenaeum<small>sedang membuka arsip...</small></h1></div><p class="empty">Menghubungkan ke perpustakaan digital.</p></div></div></div>
 <dialog id="dlg"></dialog>
+<script src="./echoes.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -610,10 +651,11 @@ function render(){
     const workContent=(w.img?'<img src="'+esc(w.img)+'" alt="'+esc(w.title)+'">':'')+(w.text?sanitizeRichHTML(w.text):'');
     const soundtrack=workSoundtrack(w);
     const readerSoundtrack=workSoundtrack(w,true);
-    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button><span class="reader-progress-label" data-reading-progress-label>0%</span></div><div class="reader-progress-track" role="progressbar" aria-label="Progres membaca" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="reader-progress-fill" data-reading-progress></div></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
+    const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button><span class="reader-progress-label" data-reading-progress-label>0%</span></div><div class="reader-progress-track" role="progressbar" aria-label="Progres membaca" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="reader-progress-fill" data-reading-progress></div></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+echoMarkup(w.id)+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+linkedContributorName(w.author),actions,
-      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
+      (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+echoMarkup(w.id)+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
     mountReadingProgress(A);
+    mountWorkEchoes(w.id);
   }else if(t==='drafts'&&isMember()){
     const drafts=localWorkDrafts();
     const body='<div class="drafts-heading"><span class="section-kicker">PERSONAL WRITING DESK</span><h2>My Drafts</h2><p>Draft tersimpan otomatis di browser perangkat ini. Tidak terbit dan tidak tersinkron ke perangkat lain. Foto yang belum diterbitkan harus dipilih ulang.</p></div>'+
@@ -1297,6 +1339,8 @@ async function performAction(act,id,t){
 }
 
 document.addEventListener('click',async e=>{
+  const echoButton=e.target.closest('[data-echo-reaction]');
+  if(echoButton){e.preventDefault();await toggleWorkEcho(echoButton);return;}
   const collections=e.target.closest('[data-scroll-collections]');
   if(collections){
     const scrollToCollections=()=>requestAnimationFrame(()=>document.querySelector('#home-collections')?.scrollIntoView({behavior:'smooth',block:'start'}));
