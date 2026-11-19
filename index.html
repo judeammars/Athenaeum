@@ -87,7 +87,7 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .home-grid .add .cover{aspect-ratio:1.35!important;margin-top:12px!important;border-radius:0 14px 8px 8px}
 .home-colophon{display:flex;justify-content:space-between;gap:12px;margin-top:28px;padding-top:12px;border-top:1px solid var(--line);font-size:10px;letter-spacing:.12em;color:#928a78}
 @media(max-width:640px){.home-intro{grid-template-columns:1fr;gap:16px;padding:19px}.intro-mark{display:flex;align-items:center;gap:12px;text-align:left;border-left:0;border-top:1px solid rgba(140,130,108,.35);padding:12px 0 0}.intro-mark strong{font-size:38px}.intro-mark span{margin:0}.home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.collection-heading h2{font-size:24px}.home-colophon{font-size:9px}}
-</style>
+.cover-credit{margin:5px 0 18px;color:var(--gray);font-size:13px;font-style:italic}</style>
 </head>
 <body>
 <div id="app"><div class="stage"><div class="folder"><div class="top"><h1>Athenaeum<small>sedang membuka arsip...</small></h1></div><p class="empty">Menghubungkan ke perpustakaan digital.</p></div></div></div>
@@ -114,7 +114,7 @@ function publicUrl(path){
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.created_by};}
-function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
+function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'Athenaeum',cover_artist:x.cover_artist||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
 function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,created_by:x.created_by};}
 
 async function refreshData(){
@@ -173,7 +173,7 @@ function render(){
     if(canManage(b))actions='<a data-act="editb">edit cover</a> · <a data-act="delb">hapus cover</a>';
     const project=db.folders.find(f=>f.id===b.fid);
     A.innerHTML=frame(esc(project?project.name:'Project'),'',actions,
-      '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh '+esc(b.owner)+' ('+esc(b.year)+')</p></p>'+
+      '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'
       '<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
       (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+'</div></div>','f/'+b.fid);
   }else if(t==='w'&&db.works.find(x=>x.id===id)){
@@ -315,11 +315,11 @@ async function performAction(act,id,t){
   }
   if(act==='addb'){
     if(!isMember())throw new Error('Masuk sebagai kontributor untuk menambahkan cover.');
-    const v=await ask('Cover baru',[{k:'title',l:'Judul',req:true},{k:'owner',l:'Nama pemilik cover',req:true},{k:'year',l:'Tahun'},{k:'file',l:'Gambar cover',t:'file'}]);
+    const v=await ask('Cover baru',[{k:'title',l:'Judul cover',req:true},{k:'cover_artist',l:'Cover dibuat/digambar oleh',req:true},{k:'year',l:'Tahun'},{k:'file',l:'Gambar cover',t:'file'}]);
     if(!v)return;
     const path=await uploadImage(v.file,'covers',900);
     const year=parseInt(v.year,10)||null;
-    const r=await supabase.from('books').insert({folder_id:id,title:v.title,owner_name:v.owner,year:year,cover_path:path,created_by:user().id});
+    const r=await supabase.from('books').insert({folder_id:id,title:v.title,owner_name:'Athenaeum',cover_artist:v.cover_artist,year:year,cover_path:path,created_by:user().id});
     if(r.error){if(path)await supabase.storage.from(BUCKET).remove([path]);throw r.error;}
     await refreshData();render();return;
   }
@@ -335,10 +335,10 @@ async function performAction(act,id,t){
   }
   if(act==='editb'){
     const b=db.books.find(x=>x.id===id);if(!canManage(b))throw new Error('Anda tidak memiliki izin mengubah cover ini.');
-    const v=await ask('Edit cover',[{k:'title',l:'Judul',req:true,v:b.title},{k:'owner',l:'Nama pemilik cover',req:true,v:b.owner},{k:'year',l:'Tahun',v:b.year},{k:'file',l:'Ganti gambar cover (opsional)',t:'file'}]);
+    const v=await ask('Edit cover',[{k:'title',l:'Judul cover',req:true,v:b.title},{k:'cover_artist',l:'Cover dibuat/digambar oleh',req:true,v:b.cover_artist},{k:'year',l:'Tahun',v:b.year},{k:'file',l:'Ganti gambar cover (opsional)',t:'file'}]);
     if(!v)return;
     const path=v.file&&v.file.size?await uploadImage(v.file,'covers',900):b.cover_path;
-    const r=await supabase.from('books').update({title:v.title,owner_name:v.owner,year:parseInt(v.year,10)||null,cover_path:path}).eq('id',id);
+    const r=await supabase.from('books').update({title:v.title,owner_name:'Athenaeum',cover_artist:v.cover_artist,year:parseInt(v.year,10)||null,cover_path:path}).eq('id',id);
     if(r.error)throw r.error;
     await refreshData();render();return;
   }
