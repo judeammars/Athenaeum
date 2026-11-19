@@ -225,6 +225,34 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .work-music-embed.music-youtube iframe{aspect-ratio:16/9;height:auto;min-height:190px}
 .reader-content .work-music-embed{width:min(100%,480px);margin:4px auto 32px}
 @media(max-width:540px){.work-music-embed{width:100%;margin:8px auto 24px}}
+
+/* The Contributors */
+.site-nav{display:flex;flex-wrap:wrap;gap:19px;align-items:center;margin:-12px 0 28px;padding:0 0 13px;border-bottom:1px solid var(--line)}
+.site-nav button{border:0;background:none;padding:4px 0;font:12px 'Instrument Serif',serif;letter-spacing:.065em;color:var(--gray);cursor:pointer;text-align:left}
+.site-nav button:hover,.site-nav button.is-current{color:var(--ink)}
+.site-nav button.is-current{box-shadow:0 1px 0 var(--ink)}
+.contributor-heading{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:21px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.contributor-heading h2{font:italic 31px/1.05 'Cormorant Garamond',serif;font-weight:500;margin:5px 0 6px}
+.contributor-heading p{margin:0;font:14px/1.4 'Instrument Serif',serif;color:var(--gray)}
+.contributor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:25px 19px;align-content:start}
+.contributor-card{display:block;width:100%;border:0;padding:0;text-align:left;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.contributor-photo{aspect-ratio:3/4;overflow:hidden;background:linear-gradient(145deg,#d7cfbd,#c3b8a2);border:1px solid var(--line);box-shadow:0 6px 13px rgba(61,55,42,.12);border-radius:3px}
+.contributor-photo img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .25s}
+.contributor-card:hover .contributor-photo img,.contributor-card:focus-visible .contributor-photo img{transform:scale(1.025)}
+.contributor-name{display:block;margin:11px 0 4px;font:italic 23px/1.1 'Cormorant Garamond',serif;font-weight:500}
+.contributor-role{display:block;font:10px/1.4 'Instrument Serif',serif;letter-spacing:.13em;text-transform:uppercase;color:#898170}
+.contributor-count{display:block;margin-top:8px;font:13px 'Instrument Serif',serif;color:var(--gray)}
+.contributor-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:1px dashed var(--gray);min-height:225px;color:var(--gray);font:italic 20px 'Cormorant Garamond',serif;cursor:pointer;background:transparent}
+.contributor-add span:first-child{font:38px/1 'Cormorant Garamond',serif}
+.contributor-add:hover{background:var(--ivory2);color:var(--ink)}
+.contributor-detail{display:grid;grid-template-columns:minmax(180px,255px) minmax(0,1fr);gap:34px}
+.contributor-detail .contributor-photo{max-width:255px}
+.contributor-detail h2{font:italic 34px/1.1 'Cormorant Garamond',serif;margin:0 0 8px;font-weight:500}
+.contributor-detail .works{margin-top:18px}
+.contributor-detail .work{cursor:pointer}
+.member-work-meta{font:12px 'Instrument Serif',serif;color:var(--gray)}
+.profile-author-link{text-decoration:underline;text-underline-offset:2px;cursor:pointer;color:inherit}
+@media(max-width:640px){.site-nav{gap:13px;margin:-10px 0 20px}.site-nav button{font-size:11px}.contributor-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 13px}.contributor-heading{align-items:flex-start;flex-direction:column}.contributor-detail{grid-template-columns:1fr;gap:19px}.contributor-detail .contributor-photo{max-width:220px}.contributor-name{font-size:21px}}
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -245,7 +273,7 @@ const BUCKET='athenaeum-artworks';
 const MEMBER_EMAIL='contributors@athenaeum.invalid';
 const ADMIN_EMAIL='admin@athenaeum.invalid';
 let supabase=null;
-let session=null,profile=null,db={folders:[],books:[],works:[],carousel:[]},legacyDb=null,loadingError=null,dataReady=false,homeShowcaseTimer=null;
+let session=null,profile=null,db={folders:[],books:[],works:[],carousel:[],contributors:[]},legacyDb=null,loadingError=null,dataReady=false,homeShowcaseTimer=null;
 const user=()=>session&&session.user?session.user:null;
 const isAdmin=()=>!!(profile&&profile.role==='admin'&&profile.status==='active');
 const isMember=()=>!!(profile&&profile.status==='active'&&(profile.role==='member'||profile.role==='admin'));
@@ -258,6 +286,21 @@ function publicUrl(path){
 function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.created_by};}
 function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'Athenaeum',cover_artist:x.cover_artist||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
 function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,music_url:x.music_url||'',music_title:x.music_title||'',music_artist:x.music_artist||'',created_by:x.created_by};}
+
+function mapContributor(x){return {id:x.id,name:x.name,role:x.creative_role,img:publicUrl(x.photo_path),photo_path:x.photo_path,created_by:x.created_by};}
+const normalizedContributorName=name=>String(name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('id');
+const worksByContributor=c=>db.works.filter(w=>normalizedContributorName(w.author)===normalizedContributorName(c.name));
+const contributorByName=name=>db.contributors.find(c=>normalizedContributorName(c.name)===normalizedContributorName(name));
+const linkedContributorName=name=>{
+  const contributor=contributorByName(name);
+  return contributor?'<a class="profile-author-link" data-go="member/'+esc(contributor.id)+'" tabindex="0">'+esc(name)+'</a>':esc(name);
+};
+async function removeContributorPhoto(path){
+  if(!path||!user()||!path.startsWith(user().id+'/contributors/'))return;
+  const r=await supabase.storage.from(BUCKET).remove([path]);
+  if(r.error)console.warn('Foto profil lama belum dapat dihapus:',r.error.message);
+}
+
 
 function musicEmbedInfo(value){
   const raw=String(value||'').trim();
@@ -322,11 +365,12 @@ async function refreshData(){
     supabase.from('folders').select('*').order('created_at',{ascending:true}),
     supabase.from('books').select('*').order('created_at',{ascending:true}),
     supabase.from('works').select('*').order('created_at',{ascending:true}),
-    supabase.from('carousel_slides').select('*').order('created_at',{ascending:false})
+    supabase.from('carousel_slides').select('*').order('created_at',{ascending:false}),
+    supabase.from('contributors').select('*').order('created_at',{ascending:true})
   ]);
   const failed=results.find(x=>x.error);
   if(failed){loadingError=failed.error.message;throw failed.error;}
-  db={folders:(results[0].data||[]).map(mapFolder),books:(results[1].data||[]).map(mapBook),works:(results[2].data||[]).map(mapWork),carousel:(results[3].data||[]).map(mapCarousel)};
+  db={folders:(results[0].data||[]).map(mapFolder),books:(results[1].data||[]).map(mapBook),works:(results[2].data||[]).map(mapWork),carousel:(results[3].data||[]).map(mapCarousel),contributors:(results[4].data||[]).map(mapContributor)};
 }
 async function syncAuth(s){
   session=s||null;profile=null;
@@ -347,7 +391,14 @@ function authNote(){
   if(isAdmin()&&legacyDb&&legacyDb.folders&&legacyDb.folders.length&&!db.folders.length)extra=' <a data-act="import-legacy">Impor arsip perangkat ini</a>';
   return '<div class="authline">'+label+' <a data-act="logout">Keluar</a>'+extra+'</div>';
 }
-const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
+const siteNav=()=>{
+  const route=location.hash.slice(1).split('/')[0];
+  return '<nav class="site-nav" aria-label="Navigasi utama Athenaeum">'+
+    '<button type="button" data-go="" class="'+(!route?'is-current':'')+'">Home</button>'+
+    '<button type="button" data-scroll-collections>The Collections</button>'+
+    '<button type="button" data-go="contributors" class="'+(['contributors','member'].includes(route)?'is-current':'')+'">The Contributors</button></nav>';
+};
+const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+siteNav()+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
 
 function projectTabs(activeId){
   return '<nav class="project-tabs" aria-label="Navigasi project">'+db.folders.map(f=>'<button type="button" class="project-tab '+(f.id===activeId?'active':'')+'" data-go="f/'+esc(f.id)+'" '+(f.id===activeId?'aria-current="page"':'')+'>'+esc(f.name)+'</button>').join('')+(isAdmin()?'<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button>':'')+'</nav>';
@@ -384,8 +435,31 @@ function render(){
     const soundtrack=workSoundtrack(w);
     const readerSoundtrack=workSoundtrack(w,true);
     const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
-    A.innerHTML=frame(esc(w.title),'oleh '+esc(w.author),actions,
+    A.innerHTML=frame(esc(w.title),'oleh '+linkedContributorName(w.author),actions,
       (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
+  }else if(t==='contributors'){
+    const cards=(db.contributors||[]).map(c=>{
+      const count=worksByContributor(c).length;
+      return '<button type="button" class="contributor-card" data-go="member/'+esc(c.id)+'" aria-label="Buka profil '+esc(c.name)+'">'+
+        '<div class="contributor-photo"><img loading="lazy" src="'+esc(c.img)+'" alt="Foto '+esc(c.name)+'"></div>'+
+        '<span class="contributor-name">'+esc(c.name)+'</span><span class="contributor-role">'+esc(c.role)+'</span>'+
+        '<span class="contributor-count">'+count+' Published Work'+(count===1?'':'s')+'</span></button>';
+    }).join('');
+    const add=isAdmin()?'<button type="button" class="contributor-add" data-act="add-member"><span>＋</span><span>Add Member</span></button>':'';
+    const body='<header class="contributor-heading"><div><span class="section-kicker">THE PEOPLE BEHIND THE ART</span><h2>The Contributors</h2><p>Mengenal tangan-tangan yang merajut aksara dan rupa.</p></div><span class="collection-count">'+db.contributors.length+' CONTRIBUTORS</span></header>'+
+      (db.contributors.length||isAdmin()?'<div class="contributor-grid">'+cards+add+'</div>':'<p class="empty">Belum ada profil kontributor yang diterbitkan.</p>');
+    A.innerHTML=frame('The Contributors','Athenaeum Creative Community','',body,'');
+  }else if(t==='member'&&db.contributors.find(c=>c.id===id)){
+    const c=db.contributors.find(x=>x.id===id),works=worksByContributor(c);
+    const actions=isAdmin()?'<a data-act="edit-member">edit profil</a> · <a data-act="delete-member">hapus profil</a>':'';
+    const list=works.length?works.map(w=>
+      '<div class="work" role="link" tabindex="0" data-go="w/'+esc(w.id)+'"><span>'+esc(w.title)+'</span><span class="member-work-meta">'+esc(w.kind)+'</span></div>'
+    ).join(''):'<p class="empty">Belum ada karya dengan nama penulis/pelukis yang sesuai.</p>';
+    const body='<div class="contributor-detail"><div class="contributor-photo"><img src="'+esc(c.img)+'" alt="Foto '+esc(c.name)+'"></div><div>'+
+      '<span class="section-kicker">ATHENAEUM CONTRIBUTOR</span><h2>'+esc(c.name)+'</h2>'+
+      '<span class="contributor-role">'+esc(c.role)+'</span><p class="contributor-count">'+works.length+' Published Work'+(works.length===1?'':'s')+'</p>'+
+      '<div class="works">'+list+'</div></div></div>';
+    A.innerHTML=frame('The Contributors','Profil member',actions,body,'contributors');
   }else{
     const coverCount=db.books.length,workCount=db.works.length;
     const welcome='<div class="showcase-slide welcome-slide is-active"><section class="home-intro"><div class="intro-copy"><span class="intro-eyebrow">A living archive · Est. 2026</span><p>Kala seni rupa berpadu aksara, luluh dalam selaras yang paripurna. Kami adalah Penulis &amp;. Pelukis.</p><span class="intro-handle">@AthenaeumHall</span></div><div class="intro-mark"><strong>Æ</strong><span>THE CREATIVE<br>COLLECTIONS</span></div></section></div>';
@@ -393,7 +467,7 @@ function render(){
     const showcaseCount=(db.carousel||[]).length+1;
     const showcaseControls=showcaseCount>1?'<div class="showcase-controls"><span class="showcase-count"><span data-showcase-current>01</span> / '+String(showcaseCount).padStart(2,'0')+'</span><div class="showcase-dots">'+Array.from({length:showcaseCount},(_,i)=>'<button type="button" class="showcase-dot '+(i===0?'active':'')+'" data-showcase-dot="'+i+'" aria-label="Slide '+(i+1)+'" '+(i===0?'aria-current="true"':'')+'></button>').join('')+'</div><div class="showcase-arrows"><button type="button" data-showcase-prev aria-label="Slide sebelumnya">‹</button><button type="button" data-showcase-next aria-label="Slide berikutnya">›</button></div></div>':'';
     const showcase='<section class="home-showcase" data-home-showcase><div class="showcase-track">'+welcome+workSlides+'</div>'+showcaseControls+'</section>';
-    const heading='<div class="collection-heading"><div><span class="section-kicker">THE ARCHIVE</span><h2>The Collections</h2></div><div class="collection-count">'+db.folders.length+' PROJECTS&nbsp; · &nbsp;'+coverCount+' COVERS&nbsp; · &nbsp;'+workCount+' WORKS</div></div>';
+    const heading='<div class="collection-heading" id="home-collections"><div><span class="section-kicker">THE ARCHIVE</span><h2>The Collections</h2></div><div class="collection-count">'+db.folders.length+' PROJECTS&nbsp; · &nbsp;'+coverCount+' COVERS&nbsp; · &nbsp;'+workCount+' WORKS</div></div>';
     const cards=!dataReady?'<div class="empty">Sedang memuat koleksi...</div>':db.folders.length?db.folders.map((f,i)=>'<div class="card" data-go="f/'+f.id+'" tabindex="0"><div class="ftile"><span class="folder-index">COLLECTION '+String(i+1).padStart(2,'0')+'</span></div><h3>'+esc(f.name)+'</h3><p>'+db.books.filter(b=>b.fid===f.id).length+' cover dalam koleksi</p></div>').join(''):'<div class="empty">Belum ada folder yang diterbitkan.</div>';
     const add=isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:1.35;margin-top:12px">+</div><h3>Folder baru</h3><p>Tambahkan koleksi</p></div>':'';
     const colophon='<div class="home-colophon"><span>AN OPEN SHELF FOR CREATIVE WORK</span><span>WORDS · IMAGES · IDEAS</span></div>';
@@ -740,6 +814,52 @@ async function performAction(act,id,t){
   if(act==='retry'){await refreshData();render();return;}
   if(act==='import-legacy'){await importLegacy();return;}
 
+  if(act==='add-member'||act==='edit-member'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat mengelola profil member.');
+    const existing=act==='edit-member'?db.contributors.find(c=>c.id===id):null;
+    if(act==='edit-member'&&!existing)throw new Error('Profil member tidak ditemukan.');
+    const values=await ask(existing?'Edit Profil Member':'Add Member',[
+      {k:'name',l:'Nama member / pen name',req:true,v:existing?existing.name:''},
+      {k:'creative_role',l:'Peran',t:'sel',o:['Writer','Illustrator','Writer & Illustrator'],v:existing?existing.role:'Writer'},
+      {k:'file',l:existing?'Ganti foto (opsional)':'Foto member',t:'file'}
+    ]);
+    if(!values)return;
+    const name=String(values.name||'').trim().replace(/\s+/g,' ');
+    if(!name||name.length>100)throw new Error('Nama member harus berisi 1 sampai 100 karakter.');
+    if(db.contributors.some(c=>c.id!==(existing&&existing.id)&&normalizedContributorName(c.name)===normalizedContributorName(name)))throw new Error('Nama member sudah digunakan. Gunakan nama unik.');
+    if(!existing&&(!values.file||!values.file.size))throw new Error('Pilih foto member terlebih dahulu.');
+    let newPath=null;
+    try{
+      if(values.file&&values.file.size)newPath=await uploadImage(values.file,'contributors',1100);
+      const payload={name,creative_role:values.creative_role,photo_path:newPath||(existing&&existing.photo_path)};
+      if(existing){
+        const result=await supabase.from('contributors').update(payload).eq('id',existing.id).select('id').single();
+        if(result.error)throw result.error;
+      }else{
+        const result=await supabase.from('contributors').insert({...payload,created_by:user().id}).select('id').single();
+        if(result.error)throw result.error;
+      }
+    }catch(error){
+      if(newPath)await removeContributorPhoto(newPath);
+      throw error;
+    }
+    if(newPath&&existing&&existing.photo_path)await removeContributorPhoto(existing.photo_path);
+    await refreshData();
+    if(existing){render();}else{location.hash='contributors';render();}
+    return;
+  }
+  if(act==='delete-member'){
+    if(!isAdmin())throw new Error('Hanya admin yang dapat menghapus profil member.');
+    const c=db.contributors.find(x=>x.id===id);
+    if(!c)throw new Error('Profil member tidak ditemukan.');
+    if(!confirm('Hapus profil '+c.name+'? Karya yang sudah diterbitkan tidak akan dihapus.'))return;
+    const result=await supabase.from('contributors').delete().eq('id',id).select('id').single();
+    if(result.error)throw result.error;
+    await removeContributorPhoto(c.photo_path);
+    await refreshData();
+    location.hash='contributors';render();return;
+  }
+
   if(act==='add-carousel'){
     if(!isAdmin())throw new Error('Hanya admin yang dapat mengelola carousel.');
     const v=await ask('Tambah Carousel',[
@@ -869,6 +989,12 @@ async function performAction(act,id,t){
 }
 
 document.addEventListener('click',async e=>{
+  const collections=e.target.closest('[data-scroll-collections]');
+  if(collections){
+    if(location.hash){location.hash='';render();}
+    requestAnimationFrame(()=>document.querySelector('#home-collections')?.scrollIntoView({behavior:'smooth',block:'start'}));
+    return;
+  }
   const readAction=e.target.closest('[data-reading-action]');
   if(readAction){
     const overlay=readAction.closest('[data-reader-overlay]')||document.querySelector('[data-reader-overlay]');
