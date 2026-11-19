@@ -253,6 +253,10 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .member-work-meta{font:12px 'Instrument Serif',serif;color:var(--gray)}
 .profile-author-link{text-decoration:underline;text-underline-offset:2px;cursor:pointer;color:inherit}
 @media(max-width:640px){.site-nav{gap:13px;margin:-10px 0 20px}.site-nav button{font-size:11px}.contributor-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 13px}.contributor-heading{align-items:flex-start;flex-direction:column}.contributor-detail{grid-template-columns:1fr;gap:19px}.contributor-detail .contributor-photo{max-width:220px}.contributor-name{font-size:21px}}
+
+.contributor-telegram{margin:10px 0 2px;font:14px 'Instrument Serif',serif}
+.contributor-telegram a{display:inline-flex;align-items:center;gap:5px;color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+.contributor-telegram a:hover{opacity:.65}
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -287,7 +291,21 @@ function mapFolder(x){return {id:x.id,name:x.name,note:x.note||'',created_by:x.c
 function mapBook(x){return {id:x.id,fid:x.folder_id,title:x.title,owner:x.owner_name||'Athenaeum',cover_artist:x.cover_artist||'',year:x.year||'',img:publicUrl(x.cover_path),cover_path:x.cover_path,created_by:x.created_by};}
 function mapWork(x){return {id:x.id,bid:x.book_id,title:x.title,author:x.author_name||'',kind:x.kind,text:x.text_content||'',img:publicUrl(x.image_path),image_path:x.image_path,music_url:x.music_url||'',music_title:x.music_title||'',music_artist:x.music_artist||'',created_by:x.created_by};}
 
-function mapContributor(x){return {id:x.id,name:x.name,role:x.creative_role,img:publicUrl(x.photo_path),photo_path:x.photo_path,created_by:x.created_by};}
+function mapContributor(x){return {id:x.id,name:x.name,role:x.creative_role,img:publicUrl(x.photo_path),photo_path:x.photo_path,telegram_url:x.telegram_url||'',created_by:x.created_by};}
+function normalizeTelegramUrl(value){
+  const original=String(value||'').trim();
+  if(!original)return null;
+  let candidate=original;
+  if(original.startsWith('@'))candidate='https://t.me/'+original.slice(1);
+  else if(/^(?:t\.me|telegram\.me)\//i.test(original))candidate='https://'+original;
+  let url;
+  try{url=new URL(candidate);}catch(error){throw new Error('Link Telegram tidak valid. Gunakan https://t.me/username atau @username.');}
+  const username=url.pathname.replace(/^\/|\/$/g,'');
+  if(url.protocol!=='https:'||!['t.me','telegram.me'].includes(url.hostname.toLowerCase())||url.port||url.username||url.password||url.search||url.hash||!/^[a-zA-Z0-9_]{3,32}$/.test(username)){
+    throw new Error('Link Telegram tidak valid. Gunakan https://t.me/username atau @username.');
+  }
+  return 'https://t.me/'+username;
+}
 const normalizedContributorName=name=>String(name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('id');
 const worksByContributor=c=>db.works.filter(w=>normalizedContributorName(w.author)===normalizedContributorName(c.name));
 const contributorByName=name=>db.contributors.find(c=>normalizedContributorName(c.name)===normalizedContributorName(name));
@@ -457,7 +475,7 @@ function render(){
     ).join(''):'<p class="empty">Belum ada karya dengan nama penulis/pelukis yang sesuai.</p>';
     const body='<div class="contributor-detail"><div class="contributor-photo"><img src="'+esc(c.img)+'" alt="Foto '+esc(c.name)+'"></div><div>'+
       '<span class="section-kicker">ATHENAEUM CONTRIBUTOR</span><h2>'+esc(c.name)+'</h2>'+
-      '<span class="contributor-role">'+esc(c.role)+'</span><p class="contributor-count">'+works.length+' Published Work'+(works.length===1?'':'s')+'</p>'+
+      '<span class="contributor-role">'+esc(c.role)+'</span>'+(c.telegram_url?'<p class="contributor-telegram"><a href="'+esc(c.telegram_url)+'" target="_blank" rel="noopener noreferrer" aria-label="Buka Telegram '+esc(c.name)+'">✈ Telegram ↗</a></p>':'')+'<p class="contributor-count">'+works.length+' Published Work'+(works.length===1?'':'s')+'</p>'+
       '<div class="works">'+list+'</div></div></div>';
     A.innerHTML=frame('The Contributors','Profil member',actions,body,'contributors');
   }else{
@@ -821,17 +839,19 @@ async function performAction(act,id,t){
     const values=await ask(existing?'Edit Profil Member':'Add Member',[
       {k:'name',l:'Nama member / pen name',req:true,v:existing?existing.name:''},
       {k:'creative_role',l:'Peran',t:'sel',o:['Writer','Illustrator','Writer & Illustrator'],v:existing?existing.role:'Writer'},
+      {k:'telegram_url',l:'Link Telegram (opsional, contoh: https://t.me/username atau @username)',v:existing?existing.telegram_url:''},
       {k:'file',l:existing?'Ganti foto (opsional)':'Foto member',t:'file'}
     ]);
     if(!values)return;
     const name=String(values.name||'').trim().replace(/\s+/g,' ');
+    const telegramUrl=normalizeTelegramUrl(values.telegram_url);
     if(!name||name.length>100)throw new Error('Nama member harus berisi 1 sampai 100 karakter.');
     if(db.contributors.some(c=>c.id!==(existing&&existing.id)&&normalizedContributorName(c.name)===normalizedContributorName(name)))throw new Error('Nama member sudah digunakan. Gunakan nama unik.');
     if(!existing&&(!values.file||!values.file.size))throw new Error('Pilih foto member terlebih dahulu.');
     let newPath=null;
     try{
       if(values.file&&values.file.size)newPath=await uploadImage(values.file,'contributors',1100);
-      const payload={name,creative_role:values.creative_role,photo_path:newPath||(existing&&existing.photo_path)};
+      const payload={name,creative_role:values.creative_role,telegram_url:telegramUrl,photo_path:newPath||(existing&&existing.photo_path)};
       if(existing){
         const result=await supabase.from('contributors').update(payload).eq('id',existing.id).select('id').single();
         if(result.error)throw result.error;
