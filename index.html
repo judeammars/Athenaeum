@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8e6df">
+  <meta name="description" content="Athenaeum is a shared creative archive for writers and artists.">
+  <title>Athenaeum — a shared commonplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="grain"></div>
+<div class="site">
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brand-mark">a.</span><span><b>ATHENAEUM</b><small>a shared commonplace</small></span></a>
+    <nav id="nav"><a class="active" href="#archive">The archive</a><a href="#about">About</a><button id="contributeTop">Contribute <i>↗</i></button></nav>
+    <button class="menu" id="menu" aria-label="Open menu">☰</button>
+  </header>
+  <main id="top">
+    <section class="intro"><div><p class="eyebrow">✳ &nbsp; AN ARCHIVE OF SMALL UNIVERSES</p><h1>Where every work<br><em>finds a place.</em></h1></div><aside><p>A quiet corner for the things we write, draw, imagine, and leave for one another.</p><small>COLLECTION No. 001 / 2026</small></aside></section>
+    <section class="folder" id="archive"><div class="tab"><span>THE COMMON ROOM</span><b>✳</b></div><div class="paper">
+      <div class="folder-head"><div><p class="eyebrow">THE ATHENAEUM COLLECTION</p><h2>Collected <em>works</em><span>.</span></h2><p class="subtitle">A shelf for our many ways of seeing.</p></div><aside class="note"><i></i><small>A NOTE TO VISITORS</small><p>Take your time.<br>Every cover opens<br>into another world.</p><label>— the keepers</label></aside></div>
+      <div class="tools"><div class="filters"><button class="filter active" data-filter="all">All works <small id="allCount">04</small></button><button class="filter" data-filter="writing">Writing</button><button class="filter" data-filter="illustration">Illustration</button><button class="filter" data-filter="mixed">Mixed media</button></div><label class="search">⌕ <input id="search" type="search" placeholder="Find a title or a name..."></label></div>
+      <div class="shelf-meta"><span>— &nbsp; THE CURRENT SHELF</span><span id="volumeCount">04 VOLUMES</span></div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="empty" hidden><b>✳</b><p>Nothing on this shelf just yet.</p><small>Try another search, or leave the first work here.</small><button id="emptyAdd">Add a volume ＋</button></div>
+      <footer class="folder-foot"><span>EST. FOR THE LOVE OF MAKING</span><b>✳ · ❧ · ✳</b><span>PAGE 01 / OPEN ENDED</span></footer>
+    </div></section>
+    <section class="about" id="about"><span>✳</span><div><p class="eyebrow">A LITTLE ABOUT THIS PLACE</p><p>Not a competition, not a timeline. Just a shared shelf where a drawing can sit beside a poem, where unfinished thoughts are welcome, and where every contributor gets to leave their name.</p></div><button id="contributeBottom">↗</button></section>
+  </main>
+  <footer class="site-foot"><span>ATHENAEUM © 2026</span><span>MADE OF WORDS, IMAGES & THE PEOPLE BETWEEN THEM</span><a href="#top">BACK TO TOP ↑</a></footer>
+</div>
+<div class="backdrop" id="volumeModal" hidden><section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle"><button class="close" data-close="volumeModal">×</button><div id="detail"></div></section></div>
+<div class="backdrop" id="uploadModal" hidden><section class="modal upload-modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle"><button class="close" data-close="uploadModal">×</button>
+  <header class="form-head"><p class="eyebrow">LEAVE SOMETHING ON THE SHELF</p><h2 id="uploadTitle">Add a <em>volume.</em></h2><p>Give your collection a cover, then tuck the works and their makers inside.</p></header>
+  <form id="form"><div class="fields">
+    <label class="wide">Volume title <i>*</i><input name="title" required maxlength="80" placeholder="e.g. Notes from the in-between"></label>
+    <label>Curated by<input name="curator" maxlength="60" placeholder="Your name / alias"></label>
+    <label>Collection type<select name="category"><option value="writing">Writing</option><option value="illustration">Illustration</option><option value="mixed">Mixed media</option></select></label>
+    <label class="wide">A short note<textarea name="description" rows="2" maxlength="180" placeholder="What lives between these covers?"></textarea></label>
+    <div class="wide"><small class="field-label">Cover image</small><label class="file" for="cover"><b>＋</b><span><strong>Choose an image</strong><small>JPG, PNG or WEBP · up to 2 MB</small></span><em id="coverName">No file selected</em></label><input id="cover" type="file" accept="image/png,image/jpeg,image/webp" hidden></div>
+  </div>
+  <div class="divider"><span>INSIDE THIS VOLUME</span></div><div id="works"><div class="work" data-index="0"><header><b>WORK 01</b><small>REQUIRED</small></header><div class="fields">
+    <label>Work title <i>*</i><input name="workTitle" required maxlength="90" placeholder="Title of the piece"></label>
+    <label>Made by <i>*</i><input name="author" required maxlength="60" placeholder="Writer / artist alias"></label>
+    <label>Format<select name="workType"><option value="writing">Writing</option><option value="illustration">Illustration</option><option value="poetry">Poetry</option><option value="mixed">Other / mixed</option></select></label>
+    <label class="wide">The work<textarea name="content" rows="4" placeholder="Write a piece, an excerpt, or a note about the work..."></textarea></label>
+    <div class="wide"><small class="field-label">Attach an image (optional)</small><label class="file inline-file" for="workImage0">＋ &nbsp; Choose artwork <em id="workName0">No image selected</em></label><input id="workImage0" name="workImage" type="file" accept="image/png,image/jpeg,image/webp" hidden></div>
+  </div></div></div>
+  <button class="add-work" id="addWork" type="button">＋ Add another work to this volume</button>
+  <div class="notice"><b>✳</b><p><strong>Preview workspace:</strong> submissions are saved in this browser only for now. Shared member uploads will be connected to the archive database in the next setup step.</p></div>
+  <div class="actions"><button class="cancel" data-close="uploadModal" type="button">Cancel</button><button class="submit" type="submit">Place on the shelf <i>↗</i></button></div><p class="error" id="error" role="alert"></p></form>
+</section></div>
+<div class="toast" id="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>
