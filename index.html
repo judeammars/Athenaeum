@@ -83,7 +83,7 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 /* Dedicated reading mode */
 .reading-launch{display:flex;justify-content:flex-end;margin:0 0 14px}
 .reader-overlay{display:none}
-.reader-overlay.is-open{display:flex;position:fixed;inset:0;z-index:10000;flex-direction:column;overflow-y:auto;padding:0 0 clamp(28px,5vw,64px);background:var(--paper);color:var(--ink)}
+.reader-overlay.is-open{display:flex;position:fixed;inset:0;width:100%;max-width:100vw;z-index:10000;flex-direction:column;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 0 clamp(28px,5vw,64px);background:var(--paper);color:var(--ink)}
 .reader-overlay[data-theme="sepia"]{background:#eee6d5;color:#463e31}
 .reader-overlay[data-theme="night"]{background:#24231f;color:#e9e1d2}
 .reader-toolbar{position:sticky;top:0;z-index:30;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:14px;flex:0 0 auto;width:100%;margin:0 0 28px;padding:16px clamp(18px,4vw,48px);border-bottom:1px solid currentColor;background-color:#fbf8ee;box-shadow:0 8px 18px rgba(35,32,25,.09);opacity:1}
@@ -94,8 +94,8 @@ background-image:repeating-linear-gradient(transparent 0 22px,#d9c3c3 22px 23px)
 .reader-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
 .reader-control{border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;padding:6px 10px;font:12px 'Instrument Serif',serif;cursor:pointer}
 .reader-control:hover{background:rgba(120,110,90,.12)}
-.reader-content{width:var(--reader-width,700px);max-width:calc(100% - 32px);margin:0 auto;font-size:var(--reader-size,20px);line-height:1.85}
-.reader-content.read{max-width:none;font-size:var(--reader-size,20px);line-height:1.85;color:inherit}
+.reader-content{width:min(var(--reader-width,700px),calc(100% - 32px));max-width:calc(100% - 32px);min-width:0;margin:0 auto;font-size:var(--reader-size,20px);line-height:1.85;overflow-wrap:anywhere;word-break:normal}
+.reader-content.read{width:min(var(--reader-width,700px),calc(100% - 32px));max-width:calc(100% - 32px);min-width:0;font-size:var(--reader-size,20px);line-height:1.85;color:inherit}
 .reader-content.read p{margin:0 0 1.15em}
 .reader-content.read h2,.reader-content.read h3{color:inherit}
 .reader-content.read blockquote{border-color:currentColor;color:inherit;opacity:.78}
@@ -120,9 +120,10 @@ dialog.writing-mode-open .rich-area{flex:1;min-height:58vh;max-height:none;paddi
 dialog.writing-mode-open .writer-footer{position:sticky;bottom:0;background:#fff}
 dialog.writing-mode-open .btns{position:sticky;bottom:-38px;z-index:3;margin-top:12px;padding:12px 0;background:var(--paper)}
 @media(max-width:640px){
-  .reader-toolbar{align-items:flex-start;flex-direction:column;margin-bottom:18px}
-  .reader-actions{justify-content:flex-start}
-  .reader-content{font-size:19px}
+  .reader-overlay.is-open{--reader-size:18px}
+  .reader-toolbar{align-items:flex-start;flex-direction:column;margin-bottom:18px;padding:14px 16px}
+  .reader-actions{justify-content:flex-start;gap:6px}
+  .reader-content.read{line-height:1.75;overflow-wrap:anywhere}
   dialog.writing-mode-open .rich-area{min-height:58vh;padding:22px 16px;font-size:18px}
 }
 .empty{color:var(--gray);padding:14px 4px}
@@ -224,7 +225,11 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .work-music-embed.music-youtube{width:min(100%,480px)}
 .work-music-embed.music-youtube iframe{aspect-ratio:16/9;height:auto;min-height:190px}
 .reader-content .work-music-embed{width:min(100%,480px);margin:4px auto 32px}
-@media(max-width:540px){.work-music-embed{width:100%;margin:8px auto 24px}}
+@media(max-width:540px){
+  .work-music-embed{width:100%;margin:8px auto 24px}
+  .reader-content.read .work-music-embed{width:100%;max-width:100%;min-width:0;margin:0 auto 24px}
+  .reader-content.read .work-music-embed iframe{display:block;max-width:100%;width:100%;min-width:0}
+}
 
 /* The Contributors */
 .site-nav{display:flex;flex-wrap:wrap;gap:19px;align-items:center;margin:-12px 0 28px;padding:0 0 13px;border-bottom:1px solid var(--line)}
