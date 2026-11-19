@@ -220,6 +220,7 @@ function projectTabs(activeId){
 const cover=b=>b.img?'<img src="'+esc(b.img)+'" alt="'+esc(b.title)+'">':'<div class="gen" style="background:'+tone(b.title)+'">'+esc(b.title)+'</div>';
 
 function render(){
+  stopHomeShowcase();
   const parts=location.hash.slice(1).split('/'),t=parts[0],id=parts[1];
   const A=$('#app');window.scrollTo(0,0);
   if(loadingError){
