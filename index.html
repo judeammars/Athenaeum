@@ -125,7 +125,7 @@ function authNote(){
   if(isAdmin()&&legacyDb&&legacyDb.folders&&legacyDb.folders.length&&!db.folders.length)extra=' <a data-act="import-legacy">Impor arsip perangkat ini</a>';
   return '<div class="authline">'+label+' <a data-act="logout">Keluar</a>'+extra+'</div>';
 }
-const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder"><div class="top"><h1>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot"><a data-go="'+(back??'')+'" tabindex="0">'+(back===undefined?'arsip':'← kembali')+'</a><span>✦ ♡ ✿</span><span>'+new Date().getFullYear()+'</span></div></div></div>';
+const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder"><div class="top"><h1>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+body+'<div class="foot"><a data-go="'+(back??'')+'" tabindex="0">'+(back===undefined?'arsip':'← kembali')+'</a><span>'+new Date().getFullYear()+'</span></div></div></div>';
 
 function projectTabs(activeId){
   return '<nav class="project-tabs" aria-label="Navigasi project">'+db.folders.map(f=>'<button type="button" class="project-tab '+(f.id===activeId?'active':'')+'" data-go="f/'+esc(f.id)+'" '+(f.id===activeId?'aria-current="page"':'')+'>'+esc(f.name)+'</button>').join('')+(isAdmin()?'<button type="button" class="project-tab add" data-act="addf" aria-label="Tambah project" title="Tambah project">+</button>':'')+'</nav>';
