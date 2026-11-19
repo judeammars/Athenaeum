@@ -264,6 +264,36 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .contributor-telegram{margin:10px 0 2px;font:14px 'Instrument Serif',serif}
 .contributor-telegram a{display:inline-flex;align-items:center;gap:5px;color:var(--ink);text-decoration:underline;text-underline-offset:4px}
 .contributor-telegram a:hover{opacity:.65}
+
+/* Saved drafts and unpublished work preview */
+.drafts-heading{margin:0 0 22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.drafts-heading h2{font:italic 32px/1.2 'Cormorant Garamond',serif;margin:4px 0 7px}
+.drafts-heading p{margin:0;color:var(--gray);font-size:14px;line-height:1.5;max-width:740px}
+.book-drafts{margin-top:30px;border-top:1px solid var(--line);padding:15px 0}
+.book-drafts h3{font:italic 23px 'Cormorant Garamond',serif;margin:0 0 8px}
+.draft-list{margin:16px 0;max-width:800px}
+.draft-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.draft-row strong{display:block;font:italic 21px/1.1 'Cormorant Garamond',serif;font-weight:500}
+.draft-row small{display:block;color:var(--gray);margin-top:5px;font-size:12px}
+.draft-row-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.draft-row-actions button{padding:5px 2px;background:none;border:0;color:var(--ink);font:13px 'Instrument Serif',serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.draft-row-actions button:last-child{color:#866b62}
+.work-draft-status{display:block;margin:8px 0 3px;color:var(--gray);font:12px 'Instrument Serif',serif;letter-spacing:.02em}
+.work-draft-status.is-error{color:#b04836}
+.work-draft-actions{flex-wrap:wrap;gap:8px}
+.work-draft-actions button{font-size:14px}
+.publish-preview{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;overflow-y:auto;background:var(--paper);color:var(--ink);padding:0 16px 38px}
+.publish-preview[hidden]{display:none!important}
+.publish-preview-toolbar{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px max(0px,calc((100% - 780px)/2));background:var(--paper);border-bottom:1px solid var(--line)}
+.publish-preview-toolbar span{font:11px 'Instrument Serif',serif;letter-spacing:.12em;color:var(--gray)}
+.publish-preview-toolbar button{background:transparent;border:1px solid var(--ink);border-radius:20px;color:var(--ink);padding:7px 15px;font:14px 'Instrument Serif',serif;cursor:pointer}
+.publish-preview-body{width:min(100%,760px);margin:42px auto 0}
+.publish-preview-body h2{font:italic 40px/1.1 'Cormorant Garamond',serif;margin:0 0 6px}
+.publish-preview-body .preview-author{color:var(--gray);font:14px 'Instrument Serif',serif;margin:0 0 30px}
+.publish-preview-body .read{overflow-wrap:anywhere;max-width:680px}
+.publish-preview-body .read img{max-width:100%}
+@media(max-width:640px){.draft-row{align-items:flex-start;flex-direction:column}.publish-preview-body{margin-top:25px}.publish-preview-body h2{font-size:32px}}
+
 </style>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -382,6 +412,83 @@ function setReadingSoundtrack(inReader){
   });
 }
 
+
+/* Browser-scoped drafts. Shared contributor logins cannot safely own private cloud drafts. */
+const draftStorageKey=()=>user()?'athenaeum-work-drafts-v1:'+user().id:null;
+function localWorkDrafts(){
+  const key=draftStorageKey();if(!key)return [];
+  try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value.filter(x=>x&&x.id&&x.bookId&&x.fields):[];}
+  catch(error){console.warn('Draft lokal tidak dapat dibaca:',error);return [];}
+}
+function localWorkDraft(id){return localWorkDrafts().find(d=>d.id===id)||null;}
+function storeLocalWorkDraft(draft){
+  const key=draftStorageKey();if(!key)throw new Error('Masuk sebagai kontributor untuk menyimpan draft.');
+  const all=localWorkDrafts().filter(d=>d.id!==draft.id);
+  all.unshift(draft);
+  try{localStorage.setItem(key,JSON.stringify(all));return true;}
+  catch(error){throw new Error('Penyimpanan browser penuh atau tidak tersedia. Salin tulisanmu sebelum menutup halaman.');}
+}
+function removeLocalWorkDraft(id){
+  const key=draftStorageKey();if(!key||!id)return;
+  try{localStorage.setItem(key,JSON.stringify(localWorkDrafts().filter(d=>d.id!==id)));}
+  catch(error){console.warn('Draft belum dapat dihapus:',error);}
+}
+const makeWorkDraftId=()=>window.crypto&&crypto.randomUUID?crypto.randomUUID():'draft-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+function workEditorFields(w,source){
+  const v=source||{};
+  return [
+    {k:'title',l:'Judul karya',req:true,v:source?v.title:(w?w.title:'')},
+    {k:'author',l:'Nama penulis / pelukis',req:true,v:source?v.author:(w?w.author:'')},
+    {k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:source?v.kind:(w?w.kind:'Tulisan')},
+    {k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'rich',v:source?v.text:(w?w.text:''),music_url:source?v.music_url:(w?w.music_url:'')},
+    {k:'file',l:w?'Ganti gambar (opsional)':'Gambar (jika jenis Gambar)',t:'file'}
+  ];
+}
+async function publishWork(values,bookId,workId,draftId){
+  if(!isMember())throw new Error('Masuk sebagai kontributor untuk menerbitkan karya.');
+  const existing=workId?db.works.find(w=>w.id===workId):null;
+  if(workId&&!canManage(existing))throw new Error('Tidak memiliki izin mengedit karya ini.');
+  if(!values.title||!values.title.trim()||!values.author||!values.author.trim())throw new Error('Isi judul dan nama penulis/pelukis.');
+  const music=normalizedWorkMusic(values);
+  if(values.kind==='Gambar'&&!((values.file&&values.file.size)||(existing&&existing.image_path)))throw new Error('Pilih file gambar untuk diterbitkan. File tidak tersimpan di draft browser.');
+  let newPath=null;
+  try{
+    if(values.kind==='Gambar'&&values.file&&values.file.size)newPath=await uploadImage(values.file,'works',1600);
+    const data={
+      title:values.title.trim(),author_name:values.author.trim(),kind:values.kind,
+      text_content:values.kind==='Tulisan'?sanitizeRichHTML(values.text||''):'',
+      image_path:values.kind==='Tulisan'?null:(newPath||(existing&&existing.image_path)||null),...music
+    };
+    const result=existing
+      ?await supabase.from('works').update(data).eq('id',existing.id)
+      :await supabase.from('works').insert({...data,book_id:bookId,created_by:user().id});
+    if(result.error)throw result.error;
+  }catch(error){
+    if(newPath)await supabase.storage.from(BUCKET).remove([newPath]);
+    throw error;
+  }
+  removeLocalWorkDraft(draftId);
+  await refreshData();render();
+}
+async function openWorkComposer(bookId,workId=null,draft=null){
+  if(!isMember())throw new Error('Masuk sebagai kontributor untuk menulis karya.');
+  const book=db.books.find(b=>b.id===bookId);
+  if(!book)throw new Error('Cover/project draft ini sudah tidak ada.');
+  const work=workId?db.works.find(w=>w.id===workId):null;
+  if(workId&&!canManage(work))throw new Error('Tidak memiliki izin mengedit karya ini.');
+  if(work&&work.bid!==bookId)throw new Error('Lokasi karya tidak sesuai.');
+  const opts={workDraft:true,bookId,editWorkId:workId||null,draftId:draft?draft.id:null,existingImage:work?work.img:null};
+  const values=await ask(work?'Edit karya':'Tambah karya',workEditorFields(work,draft?draft.fields:null),opts);
+  if(!values){render();return;}
+  await publishWork(values,bookId,workId,opts.draftId);
+}
+function draftRow(d){
+  const book=db.books.find(b=>b.id===d.bookId);
+  const title=String(d.fields.title||'').trim()||'Tanpa judul';
+  const date=new Date(d.updatedAt||Date.now()).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});
+  return '<div class="draft-row"><div><strong>'+esc(title)+'</strong><small>'+esc(book?book.title:'Cover tidak ditemukan')+' · '+esc(d.fields.kind||'Tulisan')+' · '+esc(date)+'</small></div><div class="draft-row-actions"><button type="button" data-act="resume-draft" data-draft-id="'+esc(d.id)+'">Lanjutkan</button><button type="button" data-act="delete-draft" data-draft-id="'+esc(d.id)+'">Hapus</button></div></div>';
+}
+
 function mapCarousel(x){return {id:x.id,title:x.title,author_name:x.author_name||'',caption:x.caption||'',image_path:x.image_path,img:publicUrl(x.image_path),target_url:x.target_url,created_by:x.created_by,created_at:x.created_at};}
 
 async function refreshData(){
@@ -421,7 +528,8 @@ const siteNav=()=>{
   return '<nav class="site-nav" aria-label="Navigasi utama Athenaeum">'+
     '<button type="button" data-go="" class="'+(!route?'is-current':'')+'">Home</button>'+
     '<button type="button" data-scroll-collections>The Collections</button>'+
-    '<button type="button" data-go="contributors" class="'+(['contributors','member'].includes(route)?'is-current':'')+'">The Contributors</button></nav>';
+    '<button type="button" data-go="contributors" class="'+(['contributors','member'].includes(route)?'is-current':'')+'">The Contributors</button>'+
+    (isMember()?'<button type="button" data-go="drafts" class="'+(route==='drafts'?'is-current':'')+'">My Drafts ('+localWorkDrafts().length+')</button>':'')+'</nav>';
 };
 const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+siteNav()+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
 
@@ -451,7 +559,8 @@ function render(){
     const project=db.folders.find(f=>f.id===b.fid);
     A.innerHTML=frame(esc(project?project.name:'Project'),'',actions,
       '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
-      (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+'</div></div>','f/'+b.fid);
+      (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+
+      (isMember()&&localWorkDrafts().some(d=>d.bookId===b.id)?'<section class="book-drafts"><h3>Draft di browser ini</h3>'+localWorkDrafts().filter(d=>d.bookId===b.id).map(draftRow).join('')+'</section>':'')+'</div></div>','f/'+b.fid);
   }else if(t==='w'&&db.works.find(x=>x.id===id)){
     const w=db.works.find(x=>x.id===id);
     let actions='';
@@ -462,6 +571,11 @@ function render(){
     const reader=w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div><section class="reader-overlay" data-reader-overlay data-theme="paper" aria-label="Reading Mode"><div class="reader-toolbar"><span class="reader-kicker">ATHENAEUM · READING MODE</span><div class="reader-actions"><button type="button" class="reader-control" data-reading-action="smaller" aria-label="Perkecil huruf">A−</button><button type="button" class="reader-control" data-reading-action="larger" aria-label="Perbesar huruf">A+</button><button type="button" class="reader-control" data-reading-action="width">Lebar teks</button><button type="button" class="reader-control" data-reading-action="theme">Tema: Kertas</button><button type="button" class="reader-control" data-reading-action="close">Tutup ✕</button></div></div><article class="reader-content read" data-reader-content>'+readerSoundtrack+workContent+'</article></section>':'';
     A.innerHTML=frame(esc(w.title),'oleh '+linkedContributorName(w.author),actions,
       (w.kind==='Tulisan'?'<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>':'')+soundtrack+'<div class="read">'+workContent+'</div>'+reader.replace('<div class="reading-launch"><button type="button" class="btn" data-reading-action="open">Reading Mode ↗</button></div>',''),'b/'+w.bid);
+  }else if(t==='drafts'&&isMember()){
+    const drafts=localWorkDrafts();
+    const body='<div class="drafts-heading"><span class="section-kicker">PERSONAL WRITING DESK</span><h2>My Drafts</h2><p>Draft tersimpan otomatis di browser perangkat ini. Tidak terbit dan tidak tersinkron ke perangkat lain. Foto yang belum diterbitkan harus dipilih ulang.</p></div>'+
+      (drafts.length?'<div class="draft-list">'+drafts.map(draftRow).join('')+'</div>':'<p class="empty">Belum ada draft di browser ini. Buka salah satu cover lalu pilih Tambah karya untuk mulai menulis.</p>');
+    A.innerHTML=frame('My Drafts','Ruang kerja pribadi','',body,'');
   }else if(t==='contributors'){
     const cards=(db.contributors||[]).map(c=>{
       const count=worksByContributor(c).length;
