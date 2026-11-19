@@ -1186,15 +1186,24 @@ async function performAction(act,id,t){
     await refreshData();render();return;
   }
   if(act==='addw'){
-    if(!isMember())throw new Error('Masuk sebagai kontributor untuk menambahkan karya.');
-    const v=await ask('Tambah karya',[{k:'title',l:'Judul karya',req:true},{k:'author',l:'Nama penulis / pelukis',req:true},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar']},{k:'text',l:'Isi tulisan (jika jenis Tulisan)',t:'rich'},{k:'file',l:'Gambar (jika jenis Gambar)',t:'file'}]);
-    if(!v)return;
-    if(v.kind==='Gambar'&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
-    const music=normalizedWorkMusic(v);
-    const path=v.kind==='Gambar'?await uploadImage(v.file,'works',1600):null;
-    const r=await supabase.from('works').insert({book_id:id,title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path,...music,created_by:user().id});
-    if(r.error){if(path)await supabase.storage.from(BUCKET).remove([path]);throw r.error;}
-    await refreshData();render();return;
+    await openWorkComposer(id);
+    return;
+  }
+  if(act==='resume-draft'){
+    if(!isMember())throw new Error('Masuk dahulu untuk melanjutkan draft.');
+    const draft=localWorkDraft(id);
+    if(!draft)throw new Error('Draft ini tidak ditemukan di browser yang sedang dipakai.');
+    await openWorkComposer(draft.bookId,draft.editWorkId||null,draft);
+    return;
+  }
+  if(act==='delete-draft'){
+    if(!isMember())throw new Error('Masuk dahulu untuk menghapus draft.');
+    const draft=localWorkDraft(id);
+    if(!draft)return;
+    if(!confirm('Hapus draft "'+(draft.fields.title||'Tanpa judul')+'"? Tindakan ini tidak dapat dibatalkan.'))return;
+    removeLocalWorkDraft(id);
+    render();
+    return;
   }
   if(act==='editb'){
     const b=db.books.find(x=>x.id===id);if(!canManage(b))throw new Error('Anda tidak memiliki izin mengubah cover ini.');
@@ -1206,15 +1215,10 @@ async function performAction(act,id,t){
     await refreshData();render();return;
   }
   if(act==='editw'){
-    const w=db.works.find(x=>x.id===id);if(!canManage(w))throw new Error('Anda tidak memiliki izin mengubah karya ini.');
-    const v=await ask('Edit karya',[{k:'title',l:'Judul karya',req:true,v:w.title},{k:'author',l:'Nama penulis / pelukis',req:true,v:w.author},{k:'kind',l:'Jenis',t:'sel',o:['Tulisan','Gambar'],v:w.kind},{k:'text',l:'Isi tulisan',t:'rich',v:w.text,music_url:w.music_url,music_title:w.music_title,music_artist:w.music_artist},{k:'file',l:'Ganti gambar (opsional)',t:'file'}]);
-    if(!v)return;
-    if(v.kind==='Gambar'&&!w.image_path&&(!v.file||!v.file.size))throw new Error('Pilih file gambar untuk karya jenis Gambar.');
-    const music=normalizedWorkMusic(v);
-    const path=v.kind==='Tulisan'?null:(v.file&&v.file.size?await uploadImage(v.file,'works',1600):w.image_path);
-    const r=await supabase.from('works').update({title:v.title,author_name:v.author,kind:v.kind,text_content:v.kind==='Tulisan'?sanitizeRichHTML(v.text||''):'',image_path:path,...music}).eq('id',id);
-    if(r.error)throw r.error;
-    await refreshData();render();return;
+    const work=db.works.find(w=>w.id===id);
+    if(!canManage(work))throw new Error('Anda tidak memiliki izin mengubah karya ini.');
+    await openWorkComposer(work.bid,work.id);
+    return;
   }
 
   if(act==='delf'){
@@ -1286,7 +1290,7 @@ document.addEventListener('click',async e=>{
   if(g){location.hash=g.dataset.go;return;}
   const a=e.target.closest('[data-act]');
   if(!a)return;
-  try{await performAction(a.dataset.act,a.dataset.slideId||location.hash.slice(1).split('/')[1],location.hash.slice(1).split('/')[0]);}
+  try{await performAction(a.dataset.act,a.dataset.draftId||a.dataset.slideId||location.hash.slice(1).split('/')[1],location.hash.slice(1).split('/')[0]);}
   catch(error){console.error(error);alert(error.message||'Terjadi kesalahan.');}
 });
 document.addEventListener('keydown',e=>{
