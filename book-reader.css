@@ -18,7 +18,7 @@
 .br-top-button[hidden]{display:none}
 .br-exit{white-space:nowrap}
 .br-theatre{display:flex;flex:1 1 auto;justify-content:center;align-items:center;min-height:0;padding:16px 0 13px;perspective:2400px}
-.br-book-world{position:relative;isolation:isolate;flex:0 0 auto;width:min(960px,calc(100vw - 66px));height:min(608px,calc(100dvh - 177px));min-height:300px;transform-style:preserve-3d;transform:translateX(0);transition:transform 820ms cubic-bezier(.3,.65,.23,1)}
+.br-book-world{position:relative;flex:0 0 auto;width:min(960px,calc(100vw - 66px));height:min(608px,calc(100dvh - 177px));min-height:300px;transform-style:preserve-3d;transform:translateX(0);transition:transform 820ms cubic-bezier(.3,.65,.23,1)}
 .br-book-world.is-closed{transform:translateX(-25%)}
 .br-book-world.is-closed .br-left-page{visibility:hidden}
 .br-book-world.is-closed .br-spread::after{opacity:0}
