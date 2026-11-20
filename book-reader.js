@@ -133,7 +133,7 @@
     const height=Math.max(200,paper.getBoundingClientRect().height);
     const gutter=mobile()?48:74;
     const contentWidth=Math.max(90,width-gutter);
-    const contentHeight=Math.max(95,height-(mobile()?101:112));
+    const contentHeight=Math.max(95,height-(mobile()?124:145));
     const result=[introPage(state.book),tocPage(state.works)];
     state.starts={};
     for(const work of state.works){
@@ -361,11 +361,21 @@
     }
     if(!state.opened||state.turning)return;
     const page=event.target.closest('.br-page');
-    if(page&&!event.target.closest('a,button,input,textarea')){
+    if(page&&!event.target.closest('a,button,input,textarea')&&!window.getSelection()?.toString()){
+      const rect=page.getBoundingClientRect();
+      const nearBottom=event.clientY>rect.bottom-Math.min(110,rect.height*.24);
+      if(!nearBottom)return;
       if(mobile()){
-        const rect=page.getBoundingClientRect();
-        flip(state,event.clientX<rect.left+rect.width*.32?-1:1);
-      }else flip(state,page.classList.contains('br-left-page')?-1:1);
+        const touchLeft=event.clientX<rect.left+rect.width*.28;
+        const touchRight=event.clientX>rect.right-rect.width*.28;
+        if(!touchLeft&&!touchRight)return;
+        flip(state,touchLeft?-1:1);
+      }else{
+        const isLeft=page.classList.contains('br-left-page');
+        if(isLeft&&event.clientX>rect.left+rect.width*.3)return;
+        if(!isLeft&&event.clientX<rect.right-rect.width*.3)return;
+        flip(state,isLeft?-1:1);
+      }
     }
   }
 
