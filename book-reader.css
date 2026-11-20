@@ -22,8 +22,21 @@
 .br-book-world.is-closed{transform:translateX(-25%)}
 /* Only the closed cover is visible before opening. Keep the underlying
    page layout measurable for pagination, but hide every painted inner page. */
-.br-book-world.is-closed:not(.is-closing) .br-spread{visibility:hidden}
+.br-book-world.is-closed:not(.is-closing) .br-spread{
+  visibility:hidden;
+  opacity:0;
+  pointer-events:none;
+}
 .br-book-world.is-closed:not(.is-closing)::after{opacity:0}
+/* During closing, do not leave a second, static title page behind the
+   moving cover. The inside of the cover supplies the left book surface. */
+.br-book-world.is-closing .br-left-page{visibility:hidden}
+.br-book-world.is-closing .br-spread{
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
+.br-book-world.is-closing .br-spread::after{opacity:0}
 .br-book-world::after{content:"";position:absolute;z-index:1;inset:auto 1.5% -6px 1.5%;height:14px;border-radius:50%;background:rgba(18,16,13,.25);filter:blur(8px);pointer-events:none}
 .br-spread{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;height:100%;background:#faf4e6;border:1px solid #c9bba2;border-radius:3px 9px 9px 3px;overflow:visible;box-shadow:0 2px 0 #e2d7c4,0 5px 0 #b7a88e,0 7px 0 #e7dfd0}
 .br-spread::after{content:"";position:absolute;z-index:3;top:0;bottom:0;left:calc(50% - 12px);width:24px;background:linear-gradient(90deg,transparent,rgba(105,82,52,.12) 40%,rgba(69,52,35,.19) 50%,rgba(255,255,255,.29) 60%,transparent);pointer-events:none}
