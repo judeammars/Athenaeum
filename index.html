@@ -442,6 +442,7 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 }
 
 </style>
+<link rel="stylesheet" href="./book-reader.css">
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://bsmapmixfpiwvoptpbxt.supabase.co" crossorigin>
@@ -450,6 +451,7 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 <body>
 <div id="app"><div class="stage"><div class="folder"><div class="top"><h1>Athenaeum<small>sedang membuka arsip...</small></h1></div><p class="empty">Menghubungkan ke perpustakaan digital.</p></div></div></div>
 <dialog id="dlg"></dialog>
+<script src="./book-reader.js"></script>
 <script src="./echoes.js"></script>
 <script>
 const $=s=>document.querySelector(s);
@@ -763,6 +765,7 @@ function mountReadingProgress(root){
 window.addEventListener('resize',()=>updateReadingProgress());
 
 function render(){
+  if(window.AthenaeumBookReader)window.AthenaeumBookReader.destroy();
   stopHomeShowcase();
   const parts=location.hash.slice(1).split('/'),t=parts[0],id=parts[1];
   const A=$('#app');window.scrollTo(0,0);
@@ -785,7 +788,7 @@ function render(){
     if(canManage(b))actions='<a data-act="editb">edit cover</a> · <a data-act="delb">hapus cover</a>';
     const project=db.folders.find(f=>f.id===b.fid);
     A.innerHTML=frame(esc(project?project.name:'Project'),'',actions,
-      '<div class="book"><div class="card book-detail-cover"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
+      '<div class="book"><div class="card book-detail-cover"><div class="cover">'+cover(b)+'</div></div><div><div class="br-detail-heading"><h2>'+esc(b.title)+'</h2><button type="button" class="br-launch" data-book-mode="open" aria-label="Read as a Book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-2.5-2-5.5-2-9-1v13c3.5-1 6.5-1 9 1 2.5-2 5.5-2 9-1V6c-3.5-1-6.5-1-9 1Z"/><path d="M12 7v13"/></svg><span>Read as a Book</span></button></div><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
       (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+
       (isMember()&&localWorkDrafts().some(d=>d.bookId===b.id)?'<section class="book-drafts"><h3>Draft di browser ini</h3>'+localWorkDrafts().filter(d=>d.bookId===b.id).map(draftRow).join('')+'</section>':'')+'</div></div>','f/'+b.fid);
   }else if(t==='w'&&db.works.find(x=>x.id===id)){
@@ -1483,6 +1486,17 @@ async function performAction(act,id,t){
 }
 
 document.addEventListener('click',async e=>{
+  const bookButton=e.target.closest('[data-book-mode="open"]');
+  if(bookButton){
+    e.preventDefault();
+    const bookId=location.hash.slice(1).split('/')[1];
+    const book=db.books.find(b=>b.id===bookId);
+    if(book&&window.AthenaeumBookReader){
+      const works=db.works.filter(w=>w.bid===bookId).map(w=>({...w,html:sanitizeRichHTML(w.text)}));
+      window.AthenaeumBookReader.open(book,works,bookButton);
+    }
+    return;
+  }
   const viewButton=e.target.closest('[data-library-mode]');
   if(viewButton){e.preventDefault();switchLibraryView(viewButton);return;}
   const echoButton=e.target.closest('[data-echo-reaction]');
