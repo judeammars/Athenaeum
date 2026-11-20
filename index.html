@@ -457,6 +457,67 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
   .shelf-spine:hover,.shelf-spine:focus-visible{transform:none}
 }
 
+
+/* Site-wide archive search: projects, covers, writing, and contributors. */
+.site-nav .archive-nav-search{display:inline-flex;align-items:center;gap:5px}
+.archive-search-page{max-width:830px;width:100%;margin:0 auto;flex:1;padding:3px 0 25px}
+.archive-search-overline{display:block;width:max-content;max-width:100%;margin:0 0 11px;font:11px/1.35 'Instrument Serif',Georgia,serif;letter-spacing:.16em;color:#857967}
+.archive-search-field{display:flex;align-items:center;gap:13px;min-height:62px;padding:5px 18px;border:1px solid #c5b9a2;border-radius:6px;background:rgba(255,252,243,.76);box-shadow:0 6px 18px rgba(63,54,37,.065);transition:border-color .2s,box-shadow .2s}
+.archive-search-field:focus-within{border-color:#82715a;box-shadow:0 7px 18px rgba(63,54,37,.12)}
+.archive-search-field svg{flex:0 0 23px;color:#766d5f}
+.archive-search-field input{flex:1;min-width:0;width:100%;padding:12px 0;margin:0;border:0;outline:0;box-shadow:none;background:transparent;color:var(--ink);font:20px/1.2 'Instrument Serif',Georgia,serif;border-radius:0}
+.archive-search-field input::placeholder{color:#a29a8c;opacity:1}
+.archive-search-field input::-webkit-search-cancel-button{cursor:pointer}
+.archive-search-field kbd{flex:0 0 auto;border:1px solid #ddd3c2;border-radius:3px;padding:5px 7px;background:#f0eadc;color:#958977;font:10px/1 'Instrument Serif',Georgia,serif;white-space:nowrap}
+.archive-search-help{margin:12px 0 19px;color:var(--gray);font:14px/1.55 'Instrument Serif',Georgia,serif}
+.archive-search-filters{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 21px}
+.archive-search-filters button{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(148,135,112,.35);border-radius:999px;padding:8px 12px;color:#827867;background:transparent;cursor:pointer;font:13px/1 'Instrument Serif',Georgia,serif;transition:background .18s,border-color .18s}
+.archive-search-filters button:hover{border-color:#98876b;background:#f6f1e6}
+.archive-search-filters button[aria-pressed="true"]{background:#e5dac5;color:#453f34;border-color:#b7a789}
+.archive-search-filters button span{color:inherit;font:11px/1 'Instrument Serif',Georgia,serif;opacity:.7;font-variant-numeric:tabular-nums}
+.archive-search-summary{margin:4px 0 22px;color:#897e6c;font:15px/1.4 'Instrument Serif',Georgia,serif}
+.archive-search-summary strong{color:#504739;font-weight:400}
+.archive-search-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:230px;padding:35px 17px;border-top:1px solid var(--line);text-align:center;color:#736b5e}
+.archive-search-empty-art{font:35px/1 'Cormorant Garamond',serif;color:#b4a385;margin-bottom:13px}
+.archive-search-empty h2{font:italic 29px/1.1 'Cormorant Garamond',serif;color:#4c453a;margin:0 0 8px}
+.archive-search-empty p{font:16px/1.5 'Instrument Serif',Georgia,serif;margin:0;max-width:440px}
+.archive-search-empty strong{font-weight:500}
+.archive-search-library-count{display:block;margin-top:17px;color:#988a75;font:12px/1.6 'Instrument Serif',Georgia,serif}
+.archive-search-result-group{margin:0 0 25px}
+.archive-search-result-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:0 1px 9px;border-bottom:1px solid var(--line)}
+.archive-search-result-heading h2{margin:0;color:#4b4337;font:italic 26px/1.1 'Cormorant Garamond',serif;font-weight:500}
+.archive-search-result-heading span{font:12px 'Instrument Serif',Georgia,serif;color:var(--gray)}
+.archive-search-result-list{display:flex;flex-direction:column;gap:4px}
+.archive-search-result{display:flex;align-items:center;gap:16px;width:100%;padding:11px 10px;text-align:left;color:inherit;background:transparent;border:1px solid transparent;border-radius:5px;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .2s ease}
+.archive-search-result:hover,.archive-search-result:focus-visible{background:rgba(249,245,235,.8);border-color:rgba(167,151,125,.4);transform:translateX(3px)}
+.archive-search-thumb{display:grid;place-items:center;flex:0 0 61px;width:61px;height:75px;overflow:hidden;border-radius:4px;background:linear-gradient(145deg,#dcd0b9,#b9ae96);color:#6e604b;box-shadow:0 3px 7px rgba(51,45,36,.12)}
+.archive-search-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.archive-search-thumb.is-portrait img{object-position:center top}
+.archive-search-monogram{font:italic 29px 'Cormorant Garamond',serif;color:#776854}
+.archive-search-result-copy{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;flex:1}
+.archive-search-result-title{font:500 23px/1.1 'Cormorant Garamond',serif;overflow-wrap:anywhere}
+.archive-search-result-subtitle{color:#766e61;font:13px/1.35 'Instrument Serif',Georgia,serif}
+.archive-search-result-desc{color:#a19789;font:12px/1.35 'Instrument Serif',Georgia,serif}
+.archive-search-result-arrow{flex:0 0 auto;color:#a49a8a;font:21px/1 'Cormorant Garamond',serif}
+.archive-search-more{text-align:center;margin:18px 0 0;color:var(--gray);font:italic 15px 'Cormorant Garamond',serif}
+@media(max-width:640px){
+ .archive-search-page{padding-top:0}
+ .archive-search-field{min-height:52px;padding:4px 12px;gap:9px}
+ .archive-search-field input{font-size:17px}
+ .archive-search-field kbd{display:none}
+ .archive-search-help{font-size:13px;margin:10px 0 16px}
+ .archive-search-filters{gap:6px}
+ .archive-search-filters button{font-size:12px;padding:7px 10px}
+ .archive-search-thumb{flex-basis:52px;width:52px;height:64px}
+ .archive-search-result{gap:12px;padding:9px 5px}
+ .archive-search-result-title{font-size:21px}
+ .archive-search-result-subtitle{font-size:12px}
+ .archive-search-empty{min-height:220px;padding:30px 8px}
+}
+@media(prefers-reduced-motion:reduce){
+ .archive-search-result,.archive-search-field,.archive-search-filters button{transition:none}
+ .archive-search-result:hover,.archive-search-result:focus-visible{transform:none}
+}
 </style>
 <link rel="stylesheet" href="./book-reader.css">
 <link rel="preconnect" href="https://esm.sh" crossorigin>
@@ -695,6 +756,8 @@ const siteNav=()=>{
     '<button type="button" data-go="" class="'+(!route?'is-current':'')+'">Home</button>'+
     '<button type="button" data-scroll-collections>The Collections</button>'+
     '<button type="button" data-go="contributors" class="'+(['contributors','member'].includes(route)?'is-current':'')+'">The Contributors</button>'+
+    '<button type="button" data-go="search" class="archive-nav-search '+(route==='search'?'is-current':'')+'" aria-label="Search Athenaeum">'+
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/></svg> Search</button>'+
     (isMember()?'<button type="button" data-go="drafts" class="'+(route==='drafts'?'is-current':'')+'">My Drafts ('+localWorkDrafts().length+')</button>':'')+'</nav>';
 };
 const frame=(h,sub,note,body,back,tabs='')=>'<div class="stage '+(tabs?'has-project-tabs':'')+'">'+tabs+'<div class="folder">'+(back===undefined?'':'<div class="backbar"><a class="back-link" data-go="'+back+'" tabindex="0">← kembali</a></div>')+'<div class="top"><h1'+(h==='Athenaeum'?' class="home-title"':'')+'>'+h+(sub?'<small>'+sub+'</small>':'')+'</h1><div class="note"><div>'+ (note||'') +'</div>'+authNote()+'</div></div>'+siteNav()+body+'<div class="foot">'+(back===undefined?'<a class="archive-link" data-go="" tabindex="0">arsip</a>':'')+'<span>'+new Date().getFullYear()+'</span></div></div></div>';
@@ -761,6 +824,152 @@ function switchLibraryView(button){
   catch(error){console.warn('Pilihan tampilan tidak dapat disimpan di browser.',error);}
 }
 
+
+/* Athenaeum Search · public, client-side discovery across the existing archive. */
+const ARCHIVE_SEARCH_TYPES=[
+ {id:'all',label:'All'},
+ {id:'project',label:'Projects'},
+ {id:'cover',label:'Covers'},
+ {id:'work',label:'Works'},
+ {id:'contributor',label:'Contributors'}
+];
+let archiveSearchQuery='';
+let archiveSearchType='all';
+let archiveSearchDb=null;
+let archiveSearchCache=[];
+function archiveSearchNormalize(value){
+ return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('id-ID').trim();
+}
+function archivePlainText(content){
+ const raw=String(content||'');
+ // Works already store their public rich text. Parse the text without
+ // inserting HTML into the live page or loading resources.
+ if(!raw.includes('<'))return raw.replace(/\s+/g,' ').trim();
+ const parsed=new DOMParser().parseFromString(raw,'text/html');
+ parsed.querySelectorAll('script,style,iframe,object,svg').forEach(el=>el.remove());
+ return String(parsed.body.textContent||'').replace(/\s+/g,' ').trim();
+}
+function archiveSearchItems(){
+ if(archiveSearchDb===db)return archiveSearchCache;
+ const byFolder=new Map(db.folders.map(f=>[f.id,f]));
+ const byCover=new Map(db.books.map(b=>[b.id,b]));
+ const entries=[];
+ const add=(type,id,title,subtitle,description,searchExtra,img)=>{
+   const text=[title,subtitle,description,searchExtra].join(' ');
+   entries.push({
+     type,id:String(id),title:String(title||''),subtitle:String(subtitle||''),
+     description:String(description||''),image:img||'',
+     normalizedTitle:archiveSearchNormalize(title),
+     haystack:archiveSearchNormalize(text),
+     route:(type==='project'?'f/':type==='cover'?'b/':type==='work'?'w/':'member/')+id
+   });
+ };
+ db.folders.forEach(f=>add('project',f.id,f.name,'Project','Explore this collection',f.note,''));
+ db.books.forEach(b=>{
+   const folder=byFolder.get(b.fid);
+   add('cover',b.id,b.title,'Cover · '+(folder?.name||'Athenaeum'),
+     b.cover_artist?'Illustrated by '+b.cover_artist:'By '+(b.owner||'Athenaeum'),
+     [b.year,b.owner,b.cover_artist].join(' '),b.img);
+ });
+ db.works.forEach(w=>{
+   const cover=byCover.get(w.bid);
+   const folder=cover&&byFolder.get(cover.fid);
+   const text=archivePlainText(w.text);
+   add('work',w.id,w.title,
+      (w.kind||'Work')+' · '+(cover?.title||'Athenaeum'),
+      'By '+(w.author||'Athenaeum'),
+      [w.author,w.kind,cover?.title,folder?.name,text].join(' '),w.img||cover?.img||'');
+ });
+ db.contributors.forEach(c=>add('contributor',c.id,c.name,
+    'Contributor · '+(c.role||'Creator'),
+    'View contributor profile',c.role,c.img));
+ archiveSearchDb=db;
+ archiveSearchCache=entries;
+ return entries;
+}
+function archiveSearchMatches(query=archiveSearchQuery){
+ const tokens=archiveSearchNormalize(query).split(/\s+/).filter(Boolean);
+ if(!tokens.length)return [];
+ const normalizedQuery=tokens.join(' ');
+ return archiveSearchItems().filter(item=>tokens.every(token=>item.haystack.includes(token))).map(item=>{
+   let score=0;
+   if(item.normalizedTitle===normalizedQuery)score+=100;
+   else if(item.normalizedTitle.startsWith(normalizedQuery))score+=60;
+   else if(item.normalizedTitle.includes(normalizedQuery))score+=42;
+   else if(tokens.every(token=>item.normalizedTitle.includes(token)))score+=28;
+   if(item.type==='work')score+=4;
+   return {...item,score};
+ }).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title,'id'));
+}
+function archiveSearchResult(item){
+ const thumb=item.image?
+   '<img src="'+esc(item.image)+'" alt="" loading="lazy">':
+   '<span class="archive-search-monogram" aria-hidden="true">'+(item.type==='project'?'✦':esc(item.title.charAt(0).toUpperCase()))+'</span>';
+ return '<button type="button" class="archive-search-result" data-go="'+esc(item.route)+'" aria-label="Buka '+esc(item.title)+'">'+
+   '<span class="archive-search-thumb '+(item.type==='contributor'?'is-portrait':'')+'">'+thumb+'</span>'+
+   '<span class="archive-search-result-copy"><span class="archive-search-result-title">'+esc(item.title)+'</span>'+
+     '<span class="archive-search-result-subtitle">'+esc(item.subtitle)+'</span>'+
+     '<span class="archive-search-result-desc">'+esc(item.description)+'</span></span>'+
+   '<span class="archive-search-result-arrow" aria-hidden="true">↗</span></button>';
+}
+function archiveSearchPage(){
+ return '<section class="archive-search-page" aria-label="Search Athenaeum">'+
+   '<label class="archive-search-overline" for="archive-search-input">FIND IN THE ARCHIVE</label>'+
+   '<div class="archive-search-field">'+
+     '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.3"/><path d="m16.2 16.2 5 5"/></svg>'+
+     '<input id="archive-search-input" data-archive-search type="search" value="'+esc(archiveSearchQuery)+'"'+
+     ' placeholder="Search stories, covers, artists…" autocomplete="off" spellcheck="false" aria-label="Cari di arsip Athenaeum">'+
+     '<kbd>Ctrl K</kbd></div>'+
+   '<p class="archive-search-help">Search by title, author, illustrator, project, or contributor. You can also find words within published writing.</p>'+
+   '<div class="archive-search-filters" data-archive-search-filters aria-label="Filter hasil pencarian"></div>'+
+   '<div class="archive-search-results" data-archive-search-results aria-live="polite" aria-label="Hasil pencarian"></div>'+
+   '</section>';
+}
+function updateArchiveSearchResults(){
+ const holder=document.querySelector('[data-archive-search-results]');
+ const filters=document.querySelector('[data-archive-search-filters]');
+ if(!holder||!filters)return;
+ const query=archiveSearchQuery.trim();
+ const all=query?archiveSearchMatches(query):[];
+ const counts={all:all.length,project:0,cover:0,work:0,contributor:0};
+ all.forEach(item=>{counts[item.type]++});
+ filters.innerHTML=ARCHIVE_SEARCH_TYPES.map(type=>
+   '<button type="button" data-search-category="'+type.id+'" aria-pressed="'+(archiveSearchType===type.id)+'">'+
+   type.label+' <span>'+counts[type.id]+'</span></button>').join('');
+ if(!query){
+   holder.innerHTML='<div class="archive-search-empty">'+
+     '<span class="archive-search-empty-art" aria-hidden="true">✧</span>'+
+     '<h2>Every creation has a story.</h2>'+
+     '<p>Enter a name, title, or a few words to discover the works within Athenaeum.</p>'+
+     '<span class="archive-search-library-count">'+db.folders.length+' projects · '+db.books.length+' covers · '+db.works.length+' works · '+db.contributors.length+' contributors</span>'+
+     '</div>';
+   return;
+ }
+ const results=archiveSearchType==='all'?all:all.filter(item=>item.type===archiveSearchType);
+ if(!results.length){
+   holder.innerHTML='<div class="archive-search-empty"><span class="archive-search-empty-art" aria-hidden="true">✦</span>'+
+     '<h2>Nothing in the archives yet.</h2>'+
+     '<p>No matches for <strong>'+esc(query)+'</strong>'+(archiveSearchType==='all'?'.':' in this category.')+' Try a different keyword or category.</p></div>';
+   return;
+ }
+ const order=archiveSearchType==='all'?['project','cover','work','contributor']:[archiveSearchType];
+ const labels={project:'The Projects',cover:'The Covers',work:'The Works',contributor:'The Contributors'};
+ const limit=70;
+ let displayed=0;
+ let markup='<p class="archive-search-summary">'+results.length+' result'+(results.length===1?'':'s')+' found for <strong>“'+esc(query)+'”</strong></p>';
+ for(const type of order){
+   if(displayed>=limit)break;
+   const items=results.filter(item=>item.type===type);
+   if(!items.length)continue;
+   const visible=items.slice(0,limit-displayed);
+   displayed+=visible.length;
+   markup+='<section class="archive-search-result-group"><div class="archive-search-result-heading"><h2>'+labels[type]+'</h2>'+
+      '<span>'+items.length+'</span></div><div class="archive-search-result-list">'+visible.map(archiveSearchResult).join('')+'</div></section>';
+ }
+ if(displayed<results.length)markup+='<p class="archive-search-more">Showing the first '+displayed+' results. Refine your keywords to narrow the archive.</p>';
+ holder.innerHTML=markup;
+}
+
 const cover=b=>b.img?'<img src="'+esc(b.img)+'" alt="'+esc(b.title)+'">':'<div class="gen" style="background:'+tone(b.title)+'">'+esc(b.title)+'</div>';
 
 function updateReadingProgress(overlay=document.querySelector('[data-reader-overlay].is-open')){
@@ -824,6 +1033,13 @@ function render(){
     const body='<div class="drafts-heading"><span class="section-kicker">PERSONAL WRITING DESK</span><h2>My Drafts</h2><p>Draft tersimpan otomatis di browser perangkat ini. Tidak terbit dan tidak tersinkron ke perangkat lain. Foto yang belum diterbitkan harus dipilih ulang.</p></div>'+
       (drafts.length?'<div class="draft-list">'+drafts.map(draftRow).join('')+'</div>':'<p class="empty">Belum ada draft di browser ini. Buka salah satu cover lalu pilih Tambah karya untuk mulai menulis.</p>');
     A.innerHTML=frame('My Drafts','Ruang kerja pribadi','',body,'');
+  }else if(t==='search'){
+    A.innerHTML=frame('Search','Find something worth keeping','',archiveSearchPage(),'');
+    updateArchiveSearchResults();
+    requestAnimationFrame(()=>{
+      const input=A.querySelector('[data-archive-search]');
+      if(input&&location.hash.slice(1)==='search')input.focus({preventScroll:true});
+    });
   }else if(t==='contributors'){
     const cards=(db.contributors||[]).map(c=>{
       const count=worksByContributor(c).length;
@@ -1501,7 +1717,20 @@ async function performAction(act,id,t){
   }
 }
 
+document.addEventListener('input',e=>{
+  const field=e.target.closest('[data-archive-search]');
+  if(!field)return;
+  archiveSearchQuery=field.value;
+  updateArchiveSearchResults();
+});
 document.addEventListener('click',async e=>{
+  const searchCategory=e.target.closest('[data-search-category]');
+  if(searchCategory){
+    e.preventDefault();
+    archiveSearchType=searchCategory.dataset.searchCategory;
+    updateArchiveSearchResults();
+    return;
+  }
   const bookButton=e.target.closest('[data-book-mode="open"]');
   if(bookButton){
     e.preventDefault();
@@ -1568,6 +1797,13 @@ document.addEventListener('click',async e=>{
   catch(error){console.error(error);alert(error.message||'Terjadi kesalahan.');}
 });
 document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'&&
+     !document.querySelector('dialog[open],.br-reader-overlay,[data-reader-overlay].is-open')){
+    e.preventDefault();
+    if(location.hash.slice(1)==='search')document.querySelector('[data-archive-search]')?.focus();
+    else location.hash='search';
+    return;
+  }
   if(e.key==='Escape'){
     const overlay=document.querySelector('[data-reader-overlay].is-open');
     if(overlay){
