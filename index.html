@@ -304,9 +304,10 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 @media(max-width:640px){.reader-progress-label{margin-left:auto}}
 
 
-/* Subtle physical book finish, only for project Cover View.
-   Keep illustration colors and details visible; no 3D filters or heavy shine. */
-.cover-hover-card .cover{
+/* Consistent, low-intensity book lighting for Cover View and opened cover details.
+   Preserve the original artwork without a heavy sheen or 3D effects. */
+.cover-hover-card .cover,
+.book-detail-cover .cover{
   position:relative;
   isolation:isolate;
   border-radius:7px 9px 9px 6px;
@@ -314,7 +315,8 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
   transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s ease;
   transform-origin:bottom center;
 }
-.cover-hover-card .cover::before{
+.cover-hover-card .cover::before,
+.book-detail-cover .cover::before{
   content:"";
   position:absolute;
   z-index:2;
@@ -326,7 +328,8 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
   background:rgba(255,255,255,.22);
   box-shadow:-1px 0 2px rgba(22,19,16,.12),1px 0 2px rgba(255,255,255,.12);
 }
-.cover-hover-card .cover::after{
+.cover-hover-card .cover::after,
+.book-detail-cover .cover::after{
   content:"";
   position:absolute;
   z-index:2;
@@ -344,14 +347,19 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
 }
 .cover-hover-card:hover .cover,
-.cover-hover-card:focus-visible .cover{
+.cover-hover-card:focus-visible .cover,
+.book-detail-cover:hover .cover,
+.book-detail-cover:focus-visible .cover{
   transform:translateY(-6px) scale(1.015);
   box-shadow:0 19px 31px -8px rgba(41,37,32,.34),0 7px 12px rgba(41,37,32,.15);
 }
 @media(prefers-reduced-motion:reduce){
-  .cover-hover-card .cover{transition:none}
+  .cover-hover-card .cover,
+  .book-detail-cover .cover{transition:none}
   .cover-hover-card:hover .cover,
-  .cover-hover-card:focus-visible .cover{transform:none}
+  .cover-hover-card:focus-visible .cover,
+  .book-detail-cover:hover .cover,
+  .book-detail-cover:focus-visible .cover{transform:none}
 }
 
 /* Leave an Echo · a small reaction ritual following each published work. */
@@ -777,7 +785,7 @@ function render(){
     if(canManage(b))actions='<a data-act="editb">edit cover</a> · <a data-act="delb">hapus cover</a>';
     const project=db.folders.find(f=>f.id===b.fid);
     A.innerHTML=frame(esc(project?project.name:'Project'),'',actions,
-      '<div class="book"><div class="card"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
+      '<div class="book"><div class="card book-detail-cover"><div class="cover">'+cover(b)+'</div></div><div><h2>'+esc(b.title)+'</h2><p class="card" style="margin:0"><p>oleh Athenaeum ('+esc(b.year)+')</p></p>'+(b.cover_artist?'<p class="cover-credit">Cover dibuat/digambar oleh '+esc(b.cover_artist)+'</p>':'')+'<div class="works">'+(ws.length?ws.map(w=>'<div class="work" data-go="w/'+w.id+'" tabindex="0"><span>'+esc(w.title)+'</span><em>'+esc(w.author)+', '+esc(w.kind.toLowerCase())+'</em></div>').join(''):'<div class="empty">Belum ada karya. Tambahkan yang pertama.</div>')+'</div>'+
       (isMember()?'<button class="btn pri" data-act="addw">Tambah karya</button>':'')+
       (isMember()&&localWorkDrafts().some(d=>d.bookId===b.id)?'<section class="book-drafts"><h3>Draft di browser ini</h3>'+localWorkDrafts().filter(d=>d.bookId===b.id).map(draftRow).join('')+'</section>':'')+'</div></div>','f/'+b.fid);
   }else if(t==='w'&&db.works.find(x=>x.id===id)){
