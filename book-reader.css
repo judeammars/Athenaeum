@@ -109,6 +109,8 @@
   .br-book-world{width:min(440px,calc(100vw - 34px));height:min(660px,calc(100dvh - 166px));min-height:280px}
   .br-book-world.is-closed{transform:translateX(0)}
   .br-spread{display:block}
+  /* Keep a slim page-block edge visible on the left even in single-page mode. */
+  .br-spread::before{content:"";position:absolute;z-index:2;top:3px;bottom:3px;left:-10px;width:11px;border-radius:5px 0 0 5px;background:linear-gradient(90deg,#c2b6a2 0%,#e8dfcc 35%,#fff8e9 82%,#bcae98 100%);box-shadow:-2px 2px 6px rgba(32,24,17,.2),inset -1px 0 1px rgba(85,65,44,.12);pointer-events:none}
   .br-spread::after{left:0;width:10px;background:linear-gradient(90deg,rgba(79,55,33,.2),transparent)}
   .br-left-page{display:none}
   .br-right-page{width:100%;height:100%;border-radius:3px 8px 8px 3px}
@@ -117,9 +119,10 @@
   .br-copy{font-size:16px;line-height:1.62}
   .br-page-foot{font-size:9px}
   .br-cover-sheet{left:0;width:100%}
-  .br-flip-sheet.br-single{left:0;width:100%;transform-origin:center center}
-  .br-flip-sheet.br-reverse.br-single{left:0;transform-origin:center center}
-  .br-flip-sheet.br-reverse.br-single.br-is-turning{transform:rotateY(180deg)}
+  .br-flip-sheet.br-single{left:0;width:100%;transform-origin:left center;-webkit-transform-origin:left center}
+  /* Backward turns unfold onto the same left-hand binding edge. */
+  .br-flip-sheet.br-reverse.br-single{left:0;width:100%;transform-origin:left center;-webkit-transform-origin:left center;transform:rotateY(-180deg)}
+  .br-flip-sheet.br-reverse.br-single.br-is-turning{transform:rotateY(0deg)}
   .br-title-inner h1{font-size:36px}
   .br-story-heading h2{font-size:32px!important}
   .br-toc h2{font-size:34px!important}
