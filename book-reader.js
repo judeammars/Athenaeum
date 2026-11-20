@@ -252,13 +252,17 @@
     cover.classList.remove('br-cover-finished');
     state.opened=open;
     if(open){
-      world.classList.remove('is-closed');
+      // Reveal the inside pages as the front cover begins to open.
+      world.classList.remove('is-closed','is-closing');
       world.classList.add('is-open');
       cover.classList.add('is-open');
       await delay(reduced()?20:830);
       if(current!==state)return;
       cover.classList.add('br-cover-finished');
     }else{
+      // Keep pages visible during the closing motion, then hide the entire
+      // spread once the front cover is fully closed.
+      world.classList.add('is-closing');
       cover.classList.remove('is-open');
       world.classList.remove('is-open');
       world.classList.add('is-closed');
@@ -266,6 +270,7 @@
       applyPages(state,0);
       await delay(reduced()?20:830);
       if(current!==state)return;
+      world.classList.remove('is-closing');
     }
     state.turning=false;
     updateControls(state);
