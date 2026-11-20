@@ -244,8 +244,24 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 .contributor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:25px 19px;align-content:start}
 .contributor-card{display:block;width:100%;border:0;padding:0;text-align:left;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .contributor-photo{aspect-ratio:3/4;overflow:hidden;background:linear-gradient(145deg,#d7cfbd,#c3b8a2);border:1px solid var(--line);box-shadow:0 6px 13px rgba(61,55,42,.12);border-radius:3px}
-.contributor-photo img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .25s}
-.contributor-card:hover .contributor-photo img,.contributor-card:focus-visible .contributor-photo img{transform:scale(1.025)}
+.contributor-photo img{display:block;width:100%;height:100%;object-fit:cover}
+/* Match the project cover pop-out: lift the full portrait instead of zooming
+   the image, so contributor photos retain their original composition. */
+.contributor-card .contributor-photo{
+  transform-origin:bottom center;
+  transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s ease;
+}
+.contributor-card:hover .contributor-photo,
+.contributor-card:focus-visible .contributor-photo{
+  transform:translateY(-6px) scale(1.015);
+  box-shadow:0 19px 31px -8px rgba(41,37,32,.34),0 7px 12px rgba(41,37,32,.15);
+}
+.contributor-card:focus-visible{outline-offset:5px}
+@media(prefers-reduced-motion:reduce){
+  .contributor-card .contributor-photo{transition:none}
+  .contributor-card:hover .contributor-photo,
+  .contributor-card:focus-visible .contributor-photo{transform:none}
+}
 .contributor-name{display:block;margin:11px 0 4px;font:italic 23px/1.1 'Cormorant Garamond',serif;font-weight:500}
 .contributor-role{display:block;font:10px/1.4 'Instrument Serif',serif;letter-spacing:.13em;text-transform:uppercase;color:#898170}
 .contributor-count{display:block;margin-top:8px;font:13px 'Instrument Serif',serif;color:var(--gray)}
