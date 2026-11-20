@@ -304,10 +304,44 @@ input,textarea,select{display:block;width:100%;margin-top:4px;padding:8px 10px;f
 @media(max-width:640px){.reader-progress-label{margin-left:auto}}
 
 
-/* Original flat cover presentation with the newer pop-up hover motion. */
+/* Subtle physical book finish, only for project Cover View.
+   Keep illustration colors and details visible; no 3D filters or heavy shine. */
 .cover-hover-card .cover{
+  position:relative;
+  isolation:isolate;
+  border-radius:7px 9px 9px 6px;
+  box-shadow:0 8px 17px rgba(41,37,32,.19),1px 2px 4px rgba(41,37,32,.1);
   transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s ease;
   transform-origin:bottom center;
+}
+.cover-hover-card .cover::before{
+  content:"";
+  position:absolute;
+  z-index:2;
+  top:1px;
+  bottom:1px;
+  left:4.6%;
+  width:1px;
+  pointer-events:none;
+  background:rgba(255,255,255,.22);
+  box-shadow:-1px 0 2px rgba(22,19,16,.12),1px 0 2px rgba(255,255,255,.12);
+}
+.cover-hover-card .cover::after{
+  content:"";
+  position:absolute;
+  z-index:2;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(90deg,
+    rgba(255,255,255,.10) 0%,
+    rgba(24,20,17,.075) 3%,
+    rgba(255,255,255,.10) 6%,
+    rgba(25,20,16,.035) 10%,
+    transparent 22%,
+    transparent 86%,
+    rgba(24,20,17,.045) 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
 }
 .cover-hover-card:hover .cover,
 .cover-hover-card:focus-visible .cover{
