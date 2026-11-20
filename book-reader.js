@@ -10,6 +10,27 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[sign]));
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  // Wait for the actual cover rotation to finish, with a fallback when
+  // browsers (including in-app Safari) omit transitionend events.
+  function coverTurnFinished(cover){
+    if(reduced())return delay(20);
+    return new Promise(resolve=>{
+      let finished=false;
+      let timeout;
+      function done(){
+        if(finished)return;
+        finished=true;
+        cover.removeEventListener('transitionend',onEnd);
+        clearTimeout(timeout);
+        resolve();
+      }
+      function onEnd(event){
+        if(event.target===cover&&event.propertyName==='transform')done();
+      }
+      cover.addEventListener('transitionend',onEnd);
+      timeout=setTimeout(done,990);
+    });
+  }
   const nextFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
 
   function pageDesign(kind,html,running,workId){
@@ -230,51 +251,60 @@
     const cover=root.querySelector('[data-br-action="open-cover"]');
     if(prev)prev.disabled=!enabled||state.index<=0;
     if(next)next.disabled=!enabled||state.index+state.step>=state.pages.length;
-    if(close)close.hidden=!open;
+    if(close)close.hidden=!open||state.turning;
     if(cover)cover.disabled=!state.ready||state.turning;
     const counter=root.querySelector('.br-counter');
     if(counter){
-      counter.textContent=!state.ready?'Preparing the pages…':!open?
+      counter.textContent=state.coverMotion?
+        (state.coverMotion==='opening'?'Opening the book…':'Closing the book…'):
+        !state.ready?'Preparing the pages…':!open?
         'Tap the cover to open':(mobile()?
           'PAGE '+(state.index+1)+' / '+state.pages.length:
           'PAGES '+(state.index+1)+'–'+Math.min(state.index+2,state.pages.length)+' / '+state.pages.length);
     }
-    root.querySelector('.br-reader-hint').textContent=open?
-      (mobile()?'Swipe-free reading. Tap Next or Previous.':'Tap the page corners, use arrows, or choose a chapter in Contents.'):
+    root.querySelector('.br-reader-hint').textContent=state.coverMotion?
+      'The book is '+(state.coverMotion==='opening'?'opening.':'closing.') :
+      open?(mobile()?'Swipe-free reading. Tap Next or Previous.':'Tap the page corners, use arrows, or choose a chapter in Contents.'):
       'A story begins when the cover opens.';
   }
 
   async function animateCover(state,open){
     if(!state.ready||state.turning||state.opened===open)return;
     state.turning=true;
+    state.coverMotion=open?'opening':'closing';
     const world=state.overlay.querySelector('.br-book-world');
     const cover=state.overlay.querySelector('.br-cover-sheet');
     cover.classList.remove('br-cover-finished');
+    // Ensure the closing rotation starts from the fully opened (-180°)
+    // position, even when the cover had been hidden while reading.
+    if(!open)void cover.offsetWidth;
     state.opened=open;
     if(open){
-      // Reveal the inside pages as the front cover begins to open.
       world.classList.remove('is-closed','is-closing');
       world.classList.add('is-open');
       cover.classList.add('is-open');
-      await delay(reduced()?20:830);
+      updateControls(state);
+      await coverTurnFinished(cover);
       if(current!==state)return;
       cover.classList.add('br-cover-finished');
     }else{
-      // Keep pages visible during the closing motion, then hide the entire
-      // spread once the front cover is fully closed.
+      // The cover's inside face is the moving left leaf. Hide the static
+      // left title page immediately so it cannot remain beside the cover.
       world.classList.add('is-closing');
       cover.classList.remove('is-open');
       world.classList.remove('is-open');
       world.classList.add('is-closed');
-      // Keep the current page untouched for the entire closing animation.
-      // Reset only once the cover has reached its closed position.
-      await delay(reduced()?20:830);
+      updateControls(state);
+      await coverTurnFinished(cover);
       if(current!==state)return;
+      // Only AFTER the cover finishes do we remove the spread and reset
+      // content for the next opening. No visible page swap mid-turn.
       world.classList.remove('is-closing');
       state.index=0;
       applyPages(state,0);
     }
     state.turning=false;
+    state.coverMotion=null;
     updateControls(state);
   }
 
