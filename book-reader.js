@@ -266,11 +266,13 @@
       cover.classList.remove('is-open');
       world.classList.remove('is-open');
       world.classList.add('is-closed');
-      state.index=0;
-      applyPages(state,0);
+      // Keep the current page untouched for the entire closing animation.
+      // Reset only once the cover has reached its closed position.
       await delay(reduced()?20:830);
       if(current!==state)return;
       world.classList.remove('is-closing');
+      state.index=0;
+      applyPages(state,0);
     }
     state.turning=false;
     updateControls(state);
@@ -280,8 +282,11 @@
     const showMobile=mobile(),total=state.pages.length;
     const sheet=document.createElement('div');
     sheet.className='br-flip-sheet'+(forward?'':' br-reverse')+(showMobile?' br-single':'');
-    const fromIndex=showMobile?state.index:(forward?state.index+1:state.index);
-    const toIndex=showMobile?target:(forward?target:target+1);
+    // On a phone, both directions hinge on the book's LEFT binding edge.
+    // Going backward: the previous page comes in from the left, rather
+    // than rotating the current leaf around its center.
+    const fromIndex=showMobile?(forward?state.index:target):(forward?state.index+1:state.index);
+    const toIndex=showMobile?(forward?target:state.index):(forward?target:target+1);
     sheet.innerHTML=
       '<div class="br-flip-face br-flip-front">'+
         contentPageHtml(state.pages[fromIndex],fromIndex,total)+'</div>'+
@@ -307,8 +312,9 @@
         showMobile?target:target+1,total);
     }else if(!showMobile){
       left.innerHTML=contentPageHtml(state.pages[target],target,total);
-    }else{
-      right.innerHTML=contentPageHtml(state.pages[target],target,total);
+    }else if(showMobile){
+      // Keep the currently visible page underneath the incoming leaf.
+      // Swapping it now would make the text jump before the turn finishes.
     }
     const world=state.overlay.querySelector('.br-book-world');
     world.appendChild(sheet);
