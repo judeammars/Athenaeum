@@ -798,14 +798,7 @@ function render(){
     const add=isAdmin()?'<div class="card add" data-act="addf" tabindex="0"><div class="cover" style="aspect-ratio:1.35;margin-top:12px">+</div><h3>Folder baru</h3><p>Tambahkan koleksi</p></div>':'';
     const colophon='<div class="home-colophon"><span>AN OPEN SHELF FOR CREATIVE WORK</span><span>WORDS · IMAGES · IDEAS</span></div>';
     const carouselAdmin=isAdmin()?'<section class="carousel-admin"><div class="carousel-admin-head"><span>SHOWCASE MANAGEMENT</span><button type="button" data-act="add-carousel">＋ Add Carousel</button></div>'+((db.carousel||[]).map(slide=>'<div class="carousel-admin-row"><span>'+esc(slide.title)+'</span><span><a data-act="edit-carousel" data-slide-id="'+esc(slide.id)+'">edit</a> · <a data-act="delete-carousel" data-slide-id="'+esc(slide.id)+'">hapus</a></span></div>').join(''))+'</section>':'';
-    const homeShelf=db.folders.map((f,i)=>{
-      const firstCover=db.books.find(b=>b.fid===f.id);
-      return spineBook(f.name,firstCover&&firstCover.img||null,'f/'+f.id,i,db.books.filter(b=>b.fid===f.id).length+' cover');
-    }).join('');
-    const homeModes=libraryModePanels('projects',
-      '<div class="grid home-grid">'+cards+add+'</div>',
-      shelfDisplay(homeShelf,isAdmin()?shelfNewButton('addf','Project baru'):'','Belum ada project dalam arsip.'));
-    A.innerHTML=frame('Athenaeum','', '- explore the archive -',showcase+heading+homeModes+colophon+carouselAdmin);
+    A.innerHTML=frame('Athenaeum','', '- explore the archive -',showcase+heading+'<div class="grid home-grid">'+cards+add+'</div>'+colophon+carouselAdmin);
     mountHomeShowcase();
   }
 }
