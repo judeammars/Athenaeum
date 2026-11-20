@@ -210,7 +210,7 @@
             '<span class="br-cover-face br-front-cover">'+image+
               (!image?'<span class="br-cover-fallback">'+escapeHtml(book.title)+'</span>':'')+
               '<span class="br-cover-spine"></span></span>'+
-            '<span class="br-cover-face br-inside-cover"><span>ATHENAEUM</span></span>'+
+            '<span class="br-cover-face br-inside-cover" aria-hidden="true"></span>'+
           '</button>'+
         '</div>'+
       '</div>'+
@@ -238,6 +238,11 @@
     const visibleIdx=showMobile?state.index:state.index+1;
     const display=state.pages[visibleIdx]||state.pages[state.index];
     right.innerHTML=contentPageHtml(display,visibleIdx,total);
+    // The back of the front cover mirrors the currently visible left page.
+    // As the cover settles at -180deg it looks exactly like the page beneath,
+    // eliminating the abrupt ATHENAEUM -> title-page visual swap.
+    const insideCover=state.overlay.querySelector('.br-inside-cover');
+    if(insideCover)insideCover.innerHTML=showMobile?'':left.innerHTML;
     updateControls(state);
   }
 
@@ -441,11 +446,14 @@
       if(current!==state||state.turning)return;
       const newWidth=state.overlay.querySelector('.br-right-page').getBoundingClientRect().width;
       const newHeight=state.overlay.querySelector('.br-right-page').getBoundingClientRect().height;
-      if(Math.abs(newWidth-state.lastWidth)<8&&Math.abs(newHeight-state.lastHeight)<8)return;
-      const workId=currentWork(state);
+      const widthChanged=Math.abs(newWidth-state.lastWidth)>=8;
+      const heightChanged=Math.abs(newHeight-state.lastHeight)>=40;
+      // Mobile browser toolbars resize the viewport while scrolling; this
+      // must not unexpectedly rebuild the pages and jump to a chapter start.
+      if(!widthChanged&&(!heightChanged||mobile()))return;
       state.lastWidth=newWidth;
       state.lastHeight=newHeight;
-      prepare(state,workId).catch(err=>console.error('Book reader resize failed',err));
+      prepare(state).catch(err=>console.error('Book reader resize failed',err));
     },220);
   }
 
